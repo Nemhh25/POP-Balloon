@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContentCatalogData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/content_catalog_data.gd" id="1_catalog"]
+[ext_resource type="Resource" path="res://data/balance/game_balance.tres" id="2_balance"]
+[ext_resource type="Resource" path="res://data/balloons/red_balloon.tres" id="3_red"]
+[ext_resource type="Resource" path="res://data/balloons/blue_balloon.tres" id="4_blue"]
+[ext_resource type="Resource" path="res://data/equipment/needle.tres" id="5_needle"]
+
+[resource]
+script = ExtResource("1_catalog")
+balance = ExtResource("2_balance")
+balloons = Array[ExtResource("3_red")]([ExtResource("3_red"), ExtResource("4_blue")])
+equipment = Array[ExtResource("5_needle")]([ExtResource("5_needle")])

@@ -1,0 +1,71 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/main/game.gd" id="1_game"]
+[ext_resource type="Resource" path="res://data/content_catalog.tres" id="2_catalog"]
+[ext_resource type="PackedScene" path="res://scenes/balloons/balloon.tscn" id="3_balloon"]
+[ext_resource type="PackedScene" path="res://scenes/ui/main_hud.tscn" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/game/game_session.gd" id="5_session"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_game")
+content_catalog = ExtResource("2_catalog")
+balloon_scene = ExtResource("3_balloon")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.055, 0.075, 0.13, 1)
+
+[node name="GameView" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BalloonArea" type="CenterContainer" parent="GameView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 60.0
+offset_bottom = -210.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="BalloonContainer" type="Control" parent="GameView/BalloonArea"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 360)
+layout_mode = 2
+mouse_filter = 1
+
+[node name="UI" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MainHUD" parent="UI" instance=ExtResource("4_hud")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="GameSession" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("5_session")

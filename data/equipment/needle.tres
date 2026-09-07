@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_data.gd" id="1_equipment"]
+
+[resource]
+script = ExtResource("1_equipment")
+id = &"needle"
+display_name = "Needle"
+description = "A small automatic popper."
+base_dps = 1.0
+base_cost = 25
+max_level = 40
+required_click_damage_level = 2
+

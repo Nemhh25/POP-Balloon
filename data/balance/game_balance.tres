@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GameBalanceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/game_balance_data.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+click_damage_base = 1.0
+click_damage_growth = 1.155
+click_upgrade_base_cost = 10.0
+click_upgrade_cost_growth = 1.24
+click_upgrade_max_level = 45
+equipment_cost_growth = 1.12
+auto_damage_tick_interval = 0.25
+normal_health_variations = PackedFloat32Array(0.95, 0.98, 1, 1.02, 1.05)
+
