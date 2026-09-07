@@ -1,0 +1,32 @@
+# Godot 4 generated files
+.godot/
+
+# Imported resources
+.import/
+
+# Mono/.NET files (não usamos, mas não faz mal ignorar)
+.mono/
+
+# Exported builds
+build/
+builds/
+export/
+exports/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
