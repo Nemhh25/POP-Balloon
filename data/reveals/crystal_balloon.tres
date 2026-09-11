@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RevealRuleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/reveal_rule_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"crystal_balloon"
+display_name = "Crystal Balloon"
+required_balloon_tier = 3
+required_balloon_pop_id = &"green_balloon"
+required_balloon_pop_count = 20

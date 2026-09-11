@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlobalUpgradeData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/global_upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"buff_power"
+display_name = "Buff Power"
+description = "Increases the bonus portion of newly activated buffs; x2 becomes x2.4 at MAX."
+effect = 5
+max_level = 10
+bonus_per_level = 0.04
+required_tier = 4
+requires_buff_discovery = true

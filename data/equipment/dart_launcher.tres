@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"dart_launcher"
+display_name = "Dart Launcher"
+description = "Automated rapid launcher."
+base_dps = 40.0
+base_cost = 15000
+max_level = 40
+required_click_damage_level = 12
+required_balloon_tier = 4
+milestone_levels = PackedInt32Array(10, 25)
+milestone_multipliers = PackedFloat32Array(2, 2)

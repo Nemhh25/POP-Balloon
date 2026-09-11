@@ -1,0 +1,335 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main/main_menu.gd" id="1_menu"]
+[ext_resource type="Resource" path="res://data/content_catalog.tres" id="2_catalog"]
+[ext_resource type="Script" path="res://scripts/ui/menu_background.gd" id="3_background"]
+[ext_resource type="Script" path="res://scripts/ui/menu_balloon.gd" id="4_balloon"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+content_catalog = ExtResource("2_catalog")
+
+[node name="Background" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_background")
+
+[node name="Decorations" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="RedBalloon" type="Control" parent="Decorations"]
+layout_mode = 0
+offset_left = 85.0
+offset_top = 170.0
+offset_right = 170.0
+offset_bottom = 290.0
+script = ExtResource("4_balloon")
+balloon_color = Color(0.94, 0.2, 0.29, 0.88)
+
+[node name="BlueBalloon" type="Control" parent="Decorations"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -180.0
+offset_top = 250.0
+offset_right = -90.0
+offset_bottom = 380.0
+grow_horizontal = 0
+script = ExtResource("4_balloon")
+balloon_color = Color(0.18, 0.57, 0.94, 0.88)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MenuPanel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(390, 0)
+
+[node name="Layout" type="VBoxContainer" parent="Center/MenuPanel"]
+layout_mode = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ArcadeTitle"
+theme_override_colors/font_color = Color(1, 0.81, 0.42, 1)
+theme_override_font_sizes/font_size = 42
+text = "POP BALLOON"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Center/MenuPanel/Layout"]
+layout_mode = 2
+text = "POP. UPGRADE. GO HIGHER."
+horizontal_alignment = 1
+
+[node name="CampaignComplete" type="Label" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Sticker"
+text = "Campaign Complete"
+horizontal_alignment = 1
+visible = false
+
+[node name="ContinueButton" type="Button" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+theme_type_variation = &"ActionButton"
+text = "Continue"
+
+[node name="NewGameButton" type="Button" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "New Game"
+
+[node name="EndlessButton" type="Button" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Endless Mode"
+visible = false
+
+[node name="SettingsButton" type="Button" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Settings"
+
+[node name="CreditsButton" type="Button" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Credits"
+
+[node name="QuitButton" type="Button" parent="Center/MenuPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Quit"
+
+[node name="SettingsPanel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(390, 0)
+visible = false
+
+[node name="Layout" type="VBoxContainer" parent="Center/SettingsPanel"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Center/SettingsPanel/Layout"]
+layout_mode = 2
+theme_type_variation = &"ArcadeTitle"
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="MasterRow" type="HBoxContainer" parent="Center/SettingsPanel/Layout"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Center/SettingsPanel/Layout/MasterRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+text = "Master Volume"
+
+[node name="MasterSlider" type="HSlider" parent="Center/SettingsPanel/Layout/MasterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+
+[node name="MasterValue" type="Label" parent="Center/SettingsPanel/Layout/MasterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(42, 0)
+
+[node name="MusicRow" type="HBoxContainer" parent="Center/SettingsPanel/Layout"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Center/SettingsPanel/Layout/MusicRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+text = "Music Volume"
+
+[node name="MusicSlider" type="HSlider" parent="Center/SettingsPanel/Layout/MusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+
+[node name="MusicValue" type="Label" parent="Center/SettingsPanel/Layout/MusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(42, 0)
+
+[node name="SfxRow" type="HBoxContainer" parent="Center/SettingsPanel/Layout"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Center/SettingsPanel/Layout/SfxRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+text = "SFX Volume"
+
+[node name="SfxSlider" type="HSlider" parent="Center/SettingsPanel/Layout/SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+
+[node name="SfxValue" type="Label" parent="Center/SettingsPanel/Layout/SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(42, 0)
+
+[node name="FullscreenToggle" type="CheckButton" parent="Center/SettingsPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Fullscreen"
+
+[node name="VSyncToggle" type="CheckButton" parent="Center/SettingsPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "VSync"
+
+[node name="SettingsBackButton" type="Button" parent="Center/SettingsPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Back"
+
+[node name="CreditsPanel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(390, 0)
+visible = false
+
+[node name="Layout" type="VBoxContainer" parent="Center/CreditsPanel"]
+layout_mode = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/CreditsPanel/Layout"]
+layout_mode = 2
+theme_type_variation = &"ArcadeTitle"
+text = "Credits"
+horizontal_alignment = 1
+
+[node name="CreditsText" type="Label" parent="Center/CreditsPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="CreditsBackButton" type="Button" parent="Center/CreditsPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Back"
+
+[node name="Confirmation" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.04, 0.09, 0.78)
+visible = false
+
+[node name="Center" type="CenterContainer" parent="Confirmation"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Confirmation/Center"]
+layout_mode = 2
+custom_minimum_size = Vector2(390, 0)
+
+[node name="Layout" type="VBoxContainer" parent="Confirmation/Center/Panel"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Confirmation/Center/Panel/Layout"]
+layout_mode = 2
+theme_type_variation = &"ArcadeTitle"
+text = "Start a new game?"
+horizontal_alignment = 1
+
+[node name="Message" type="Label" parent="Confirmation/Center/Panel/Layout"]
+layout_mode = 2
+text = "Your current progress will be reset."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="Confirmation/Center/Panel/Layout"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmCancelButton" type="Button" parent="Confirmation/Center/Panel/Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(130, 40)
+text = "Cancel"
+
+[node name="ConfirmNewGameButton" type="Button" parent="Confirmation/Center/Panel/Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(130, 40)
+theme_type_variation = &"ActionButton"
+text = "New Game"
+
+[node name="Fade" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.04, 0.09, 1)
+
+[node name="VersionLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -170.0
+offset_top = -38.0
+offset_right = -22.0
+offset_bottom = -18.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.67, 0.73, 0.82, 0.8)
+horizontal_alignment = 2

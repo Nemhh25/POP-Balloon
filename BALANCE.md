@@ -1,478 +1,170 @@
 # POP Balloon — Balance Document
 
-**Status:** balanceamento-base da campanha 1.0  
-**Fonte de verdade de experiência:** `GAME_DESIGN.md`  
-**Duração-alvo:** jogador ativo típico conclui entre 1h45 e 2h15; alvo central de aproximadamente 2h
+**Status:** plano de campanha de 4–6 horas. O vertical slice continua com valores pequenos; a tabela de campanha orienta os próximos passes e deve ser validada por simulação e playtests antes de virar dados finais.
 
-Este documento transforma o game design em valores, fórmulas e checkpoints reproduzíveis. Ele não define implementação, estrutura de cenas, scripts ou APIs. Os valores foram calibrados para um jogador presente, que compra melhorias de forma razoável, clica com conforto, usa equipamentos e aproveita eventos quando os vê — não para autoclicker, macro, speedrun ou jogo completamente idle.
+## Princípios
 
-## 1. Balance Goals
+- Um tier troca o balão principal e aumenta HP, recompensa e produção esperada juntos.
+- Compras frequentes e metas visíveis evitam dead zones; espera não é ferramenta de duração.
+- Click Damage tem pico maior em jogo ativo; Auto DPS garante progresso e ganha milestones perceptíveis.
+- Coins são a economia regular; Diamonds são raros e não sustentam gastos repetitivos.
 
-- Entregar uma compra, meta ou mudança observável com frequência.
-- Manter balões comuns em uma faixa de poucos segundos de combate, nunca como mini-bosses.
-- Preservar o clique como contribuição importante até o fim por meio de crítico, combo e buffs.
-- Fazer a automação crescer de apoio inicial para principal fonte de dano, sem transformar o jogador em espectador.
-- Permitir uma campanha completa sem depender de Diamonds ou de capturar balões especiais.
-- Manter a escala final em milhões baixos/dezenas de milhões, e não em números incompreensíveis.
+## Vertical slice atual
 
-## 2. Target Completion Time
+| Balão | HP base | Coins/pop | Estado |
+|---|---:|---:|---|
+| Red | 12 | 5 | Inicial |
+| Blue | 240 | 60 | Desbloqueia com 220 Red pops e 300 Coins |
+| Green | 3.200 | 500 | Desbloqueia com 180 Blue pops e 2.000 Coins |
+| Purple | 12.000 | 7.000 | Desbloqueia com 150 Green pops e 20.000 Coins |
+| Dark | 1.800.000 | 100.000 | Desbloqueia com 120 Purple pops, 250.000 Coins e Pressure Gun Lv. 1 |
+| Rainbow | 25.000.000 | 1.200.000 | Desbloqueia com 120 Dark pops, 2.000.000 Coins e PopBot Lv. 1 |
 
-| Fase | Janela acumulada | Foco de progressão |
-|---|---:|---|
-| Red Balloon | 0–10 min | Aprender o pop, primeiro Click Damage e Needle |
-| Blue Balloon | 10–25 min | Dart e primeiro crítico |
-| Green Balloon | 25–45 min | Dart Launcher, combo e automação relevante |
-| Purple Balloon | 45–70 min | Pressure Gun e decisões de gasto |
-| Golden Balloon | 70–95 min | Balloon Popping Machine e economia em milhões |
-| Rainbow Balloon | 95–110 min | PopBot, últimos críticos e desbloqueio do boss |
-| Preparação final | 110–115 min | Anti-Balloon Cannon e compras finais |
-| Balloon King | 115–120 min | Luta de aproximadamente 3 min e 20 s |
-
-Essas janelas são metas de teste, não cronômetros obrigatórios. Jogadores mais eficientes podem terminar antes; jogadores que exploram menos ou clicam com menor frequência podem terminar depois.
-
-## 3. Player Model and Core Assumptions
-
-### Modelo ativo usado nos cálculos
-
-| Parâmetro | Valor de modelagem | Regra |
-|---|---:|---|
-| Cliques ativos | 4 por segundo | Faixa humana confortável esperada: 3–5 CPS |
-| Combo médio | 1.20–1.35x | Depende do estágio e de períodos ativos |
-| Eventos especiais | 1 a cada 3 min em média | Não são necessários para cumprir metas principais |
-| Especial durante boss | Desativado | O boss é balanceado pelo poder permanente já obtido |
-| Diamonds | Opcionais | Nenhum desbloqueio de campanha os exige |
-
-### Fórmulas de referência
+Fórmulas implementadas e ainda úteis:
 
 ```text
-Expected Manual DPS = Click Damage × 4 CPS × Expected Critical Factor × Expected Combo
-
-Expected Critical Factor = 1 + Critical Chance × (Critical Multiplier - 1)
-
-Expected Total DPS = Expected Manual DPS + Auto DPS
-
-Expected TTK = Balloon HP / Expected Total DPS
-
-Expected Income/min = Expected Pops/min × Coins per Pop
-```
-
-Os TTKs da tabela usam o poder esperado ao entrar no tier. Durante cada fase, compras reduzem esse tempo; o ritmo de pop também inclui pequenas pausas naturais de compra e leitura da interface.
-
-## 4. Balloon Stats and Progression
-
-### Variação dentro de um tier
-
-Balões comuns usam uma sequência previsível de HP, em vez de aleatoriedade pura:
-
-```text
-95% → 98% → 100% → 102% → 105% do HP base → repetir
-```
-
-Coins por pop não variam. A variação é pequena, legível e evita que a rotina pareça mecânica sem introduzir picos aleatórios de dificuldade. O Balloon King não usa variação.
-
-| Balão | HP base | Coins/pop | Diamonds | Pops esperados na fase | Desbloqueio | Requisito | Poder total esperado na entrada | TTK de entrada |
-|---|---:|---:|---:|---|---|---|---:|---:|
-| Red Balloon | 12 | 5 | — | 300 | Inicial | — | 4 DPS | 3.0 s no primeiro pop; cai rapidamente |
-| Blue Balloon | 160 | 45 | — | 210 | ~10 min | 220 Red pops + 300 Coins | 31 DPS | 5.1 s |
-| Green Balloon | 700 | 400 | — | 200 | ~25 min | 180 Blue pops + 2,000 Coins | 117 DPS | 6.0 s |
-| Purple Balloon | 2,800 | 2,000 | — | 200 | ~45 min | 170 Green pops + 15,000 Coins | 438 DPS | 6.4 s |
-| Golden Balloon | 12,000 | 12,000 | — | 175 | ~70 min | 160 Purple pops + 100,000 Coins | 1,531 DPS | 7.8 s |
-| Rainbow Balloon | 30,000 | 90,000 | — | 105 | ~95 min | 130 Golden pops + 600,000 Coins | 5,284 DPS | 5.7 s |
-| Balloon King | 4,200,000 | 1,000,000* | — | 1 | ~115 min | 80 Rainbow pops + 750,000 Coins + Anti-Balloon Cannon | 21,248 DPS | 197.7 s |
-
-\* A recompensa do Balloon King é uma bonificação de vitória para Endless e não é necessária para concluir a campanha.
-
-### Balloon unlock rules
-
-Cada unlock combina Pops e Coins para criar uma meta visível e uma decisão de gasto. A barra de progresso mostra os dois requisitos; contar tempo não é um requisito.
-
-- A quantidade de pops impede que uma compra isolada pule um tier cedo demais.
-- A exigência de Coins pede que o jogador escolha entre investir imediatamente em poder ou guardar para progredir.
-- Os requisitos ficam levemente abaixo do total típico de pops do estágio para permitir estilos de compra diferentes sem atrasar a campanha.
-
-## 5. Click Damage
-
-O jogador começa no **nível 1**, com **1 de dano por clique**. Há **45 níveis** na campanha principal.
-
-```text
-Click Damage(level) = round(1.155 ^ (level - 1))
-
-Next Click Upgrade Cost(level) = round_to_nearest_5(10 × 1.24 ^ (level - 1))
-```
-
-O custo do nível indicado compra a passagem daquele nível para o próximo. `round_to_nearest_5` arredonda para o múltiplo de 5 mais próximo.
-
-| Nível | Click Damage | Próximo custo | Coins totais gastos para chegar ao nível |
-|---:|---:|---:|---:|
-| 1 | 1 | 10 | 0 |
-| 12 | 5 | 105 | 400 |
-| 19 | 13 | 480 | 1,950 |
-| 26 | 37 | 2,165 | 8,970 |
-| 33 | 101 | 9,760 | 40,620 |
-| 40 | 276 | 44,000 | 183,280 |
-| 42 | 368 | 67,655 | 281,840 |
-| 43 | 425 | 83,890 | 349,495 |
-| 45 (máximo) | 567 | — | 537,410 |
-
-A curva aumenta de forma multiplicativa moderada: os primeiros upgrades são frequentes e fáceis de perceber; os últimos exigem planejamento, mas não anulam a importância dos equipamentos.
-
-## 6. Critical Hits
-
-### Critical Chance
-
-O jogador começa com 0%. Cada compra aumenta a chance em 5 pontos percentuais; o máximo de campanha é 30%, portanto nunca há crítico garantido.
-
-| Chance após compra | Custo | Estágio esperado |
-|---:|---:|---|
-| 5% | 150 | Red/Blue |
-| 10% | 1,200 | Blue/Green |
-| 15% | 8,000 | Green/Purple |
-| 20% | 55,000 | Purple/Golden |
-| 25% | 350,000 | Golden/Rainbow |
-| 30% (máximo) | 2,000,000 | Rainbow/preparação final |
-
-### Critical Damage
-
-O multiplicador inicial é **2.00x**. Há cinco upgrades, com máximo de **3.25x**.
-
-| Multiplicador após compra | Custo | Estágio esperado |
-|---:|---:|---|
-| 2.25x | 300 | Blue/Green |
-| 2.50x | 2,400 | Green/Purple |
-| 2.75x | 16,000 | Purple/Golden |
-| 3.00x | 110,000 | Golden/Rainbow |
-| 3.25x (máximo) | 750,000 | Rainbow/preparação final |
-
-O crítico melhora apenas a ação manual. O modelo de DPS usa o fator esperado, não picos de sorte, para que um jogador sem uma sequência excepcional continue no ritmo da campanha.
-
-## 7. Combo
-
-O combo modifica somente o dano manual, para manter o clique relevante sem inflar a economia automática.
-
-```text
-Combo stacks = floor(consecutive valid clicks / 8)
-Combo multiplier = 1.00 + (0.05 × combo stacks)
-Maximum = 10 stacks = 1.50x Click Damage
-```
-
-- Um clique é válido enquanto o jogador mantém uma cadência natural, sem intervalo superior a 0.75 s entre cliques.
-- A 4 CPS, cada stack é ganho em cerca de 2 s; o máximo é alcançado em cerca de 20 s de atividade contínua.
-- Após 1.5 s sem clique válido, o combo perde um stack por segundo até voltar a 1.00x.
-- Abrir a loja não zera o combo instantaneamente; a janela inicial dá tempo para uma compra curta.
-- Os multiplicadores médios usados nos checkpoints são 1.20x, 1.25x, 1.30x e 1.35x. O máximo de 1.50x recompensa uma sequência boa sem ser necessário para concluir o jogo.
-
-## 8. Automatic Equipment
-
-Cada compra concede um nível. Não há milestones adicionais na campanha: isso mantém a curva transparente e os equipamentos antigos naturalmente relevantes pelo custo inicial baixo e pelo DPS acumulado.
-
-```text
+Base Click Damage(level) = 1.00 + (level - 1) × 1.00
+Milestone count = floor(level / 25)
+Click Damage(level) = Base Click Damage(level) × (1 + Milestone count × 0.10)
+Next Click Upgrade Cost(level 1–14) = [5, 5, 10, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 110]
+Next Click Upgrade Cost(level 15+) = round_to_nearest_5(180 × 1.22 ^ (level - 15))
 Equipment DPS(level) = Base DPS × level
-
-Equipment Level Cost(level) = round_to_nearest_5(Base Cost × 1.12 ^ (level - 1))
+Equipment Level Cost(level) = round_to_nearest_5(Base Cost × 1.12 ^ level)
 ```
 
-O custo do nível 1 é o `Base Cost`. Limites existem apenas para evitar que a campanha se concentre em um item infinito; o Endless pode receber regras próprias futuramente.
+Needle: DPS base 1, primeira compra 25 Coins, máximo atual 40 e tick de Auto DPS a cada 0,25 s. Seus primeiros níveis preservam o crescimento de custo 1,12 para sustentar compras frequentes no início.
 
-| Equipamento | Desbloqueio | Base DPS | Base cost | Máx. campanha | Papel |
-|---|---|---:|---:|---:|---|
-| Needle | Red, após primeiro upgrade de clique | 1 | 25 | 40 | Primeira presença automática, barata de continuar melhorando |
-| Dart | Blue | 3 | 120 | 40 | Primeiro salto de automação e cadência visual |
-| Dart Launcher | Green | 10 | 600 | 40 | Máquina inicial; consolida o DPS automático |
-| Pressure Gun | Purple | 35 | 2,000 | 35 | Núcleo de dano do midgame |
-| Balloon Popping Machine | Golden | 150 | 12,000 | 30 | Principal máquina de late game |
-| PopBot | Rainbow | 600 | 55,000 | 25 | Salto tecnológico do endgame |
-| Anti-Balloon Cannon | Preparação final | 2,500 | 300,000 | 15 | Compra de destaque antes do boss |
+## Early Game Rebalance Patch
 
-### Planned equipment levels and auto DPS
+Red é o tutorial: 12 HP e 5 Coins mantêm o primeiro pop curto. Os quatro upgrades que levam Click Damage do Lv. 1 ao Lv. 5 custam 30 Coins no total; isso revela Needle sem grind. Needle não foi alterada: a compra inicial de 25 Coins e 1 DPS já é adequada para o primeiro passo de automação.
 
-| Tempo | Needle | Dart | Launcher | Pressure Gun | Popping Machine | PopBot | Cannon | Auto DPS |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 10 min | 6 | — | — | — | — | — | — | 6 |
-| 25 min | 14 | 10 | — | — | — | — | — | 44 |
-| 45 min | 22 | 20 | 12 | — | — | — | — | 202 |
-| 70 min | 28 | 28 | 22 | 14 | — | — | — | 822 |
-| 95 min | 32 | 32 | 28 | 24 | 12 | — | — | 3,048 |
-| 110 min | 35 | 35 | 32 | 30 | 20 | 8 | — | 9,310 |
-| 115 min | 36 | 36 | 34 | 32 | 24 | 12 | 2 | 17,404 |
+Blue foi reduzido de **800 para 240 HP** e sua recompensa subiu de **45 para 60 Coins**. Green recebe a subida de ritmo: foi reduzido de 8.000 para **3.200 HP** para evitar uma parede absoluta, mas permanece 13,3× mais resistente que Blue e paga **500 Coins** em vez de 400. Purple e os tiers posteriores permanecem inalterados.
 
-### Cost checks at planned end levels
+Referência de TTK, usando 6 cliques/s, sem críticos e ignorando buffs: Red inicial = ~2,0 s (12 HP / 6 DPS); Blue com Click Lv. 10 e Needle Lv. 8 = ~1,9 s (240 HP / ~128 DPS); Green com Click Lv. 15, Needle Lv. 10 e Dart Lv. 10 = ~8,9 s (3.200 HP / ~360 DPS). Green ainda pode levar ~16 s sem Dart, tornando automação e compras uma decisão clara em vez de exigir Critical.
 
-| Equipamento | Nível planejado | Coins gastos até esse nível | Próximo custo aproximado |
-|---|---:|---:|---:|
-| Needle | 36 | 12,110 | 1,480 |
-| Dart | 36 | 58,130 | 7,095 |
-| Dart Launcher | 34 | 230,720 | 28,285 |
-| Pressure Gun | 32 | 914,540 | 112,745 |
-| Balloon Popping Machine | 24 | 1,417,865 | 182,145 |
-| PopBot | 12 | 1,327,320 | 214,280 |
-| Anti-Balloon Cannon | 2 | 636,000 | 376,320 |
+| Tempo ativo estimado | Build/tier | Coins/min estimados | Próximas compras |
+|---|---|---:|---|
+| 0 min | Red, Click Lv. 1 | ~150 | Click Lv. 2 em poucos pops |
+| 5 min | Blue, Click Lv. 9–10, Needle Lv. 6–8 | ~700–1.100 | Needle, Click e Dart inicial |
+| 10 min | Blue tardio, Click Lv. 11–13, Needle Lv. 10, Dart inicial | ~1.200–1.800 | Dart e progresso para Green |
+| 20 min | Green, Click Lv. 14–16, Needle Lv. 10+, Dart Lv. 8–10 | ~1.500–2.500 | automação e objetivo de Purple |
 
-Um equipamento recém-comprado deve elevar o Auto DPS atual em aproximadamente 15–25% no estágio em que chega. Se, em teste, o primeiro nível representar menos de 10% ou mais de 35% do DPS total, seu Base DPS ou Base Cost deve ser revisado.
+As estimativas incluem a cadência de Golden Special e assumem jogo ativo. As primeiras compras ocorrem em segundos; Needle normalmente é comprada no primeiro minuto; Blue é atingido em torno de 4–6 minutos. Mid e late game preservam seus HP, recompensas, equipamentos e preços atuais.
 
-## 9. Manual vs Auto Damage Targets
+Dart: DPS base 8, primeira compra 500 Coins, máximo atual 40 e disponibilidade após Blue + Click Damage nível 6. Needle e Dart recebem ×2 no nível 10 e outro ×2 no nível 25; esses multiplicadores acumulam com os níveis normais.
 
-| Fase | Manual esperado | Auto esperado | Razão de design |
-|---|---:|---:|---|
-| Red/Blue | ~80% | ~20% | Ensinar que clicar é a fonte dominante |
-| Green/Purple | ~50–55% | ~45–50% | Combinar atividade e máquinas |
-| Golden/Rainbow inicial | ~35–45% | ~55–65% | Automação acelera, mas críticos e combo ainda importam |
-| Balloon King | ~18% | ~82% | A fábrica sustenta a luta; o clique encurta e celebra momentos-chave |
+Dart Launcher: DPS base 40, primeira compra 15.000 Coins, máximo 40; reveal em Purple + Dart Lv. 10 + Click Damage Lv. 12. Pressure Gun: DPS base 180, primeira compra 120.000 Coins, máximo 40; reveal em Purple + Dart Launcher Lv. 10 + Click Damage Lv. 16. Ambos usam os mesmos marcos acumulativos ×2 no nível 10 e ×2 no nível 25.
 
-No boss, o clique permanece importante como fonte de pico, crítico e combo, apesar de a automação responder pela maior parte do DPS sustentado.
+Specials usam um scheduler central e duram 10 s. Depois de Blue ser desbloqueado, Golden Special aparece a cada 5 balões normais estourados, tem o mesmo HP do balão normal atual e concede exatamente 3× a recompensa de Coins desse balão, incluindo bônus de Coins ativos. Crystal (3.200 HP, 15K Coins + 1 Diamond) aparece após 20 pops Green, antes do Purple. Electric (3.200 HP, 20K Coins, buff ×2 Auto DPS por 12 s) e Frenzy (4.000 HP, 20K Coins, buff ×2 Click Damage por 12 s) entram juntos na rotação ao desbloquear Blue. A cada 45 balões normais, o scheduler sorteia um deles sem repetir o anterior. Repetir um buff renova sua duração, sem acumular multiplicadores.
 
-## 10. Coins Economy
+Diamonds vêm somente do evento Crystal; balões normais não concedem mais Diamond por contagem de pops. Após ser revelado em Green, Crystal possui timer próprio de **18 s**, dura 10 s e concede 1 Diamond ao ser estourado. Se outro especial estiver ativo quando seu timer vencer, o Crystal fica pendente e aparece assim que o slot for liberado. Diamond Reward pode conceder **um Diamond adicional** nesse evento.
 
-### Renda bruta por fase
+**Diamond Event Frequency** custa 2/4/7/11/16 Diamonds, tem 5 níveis e reduz em 6% por nível somente o intervalo do Crystal: 18,0 → 16,9 → 15,8 → 14,8 → 13,7 → 12,6 s. A duração do evento permanece 10 s; portanto, mesmo no máximo ele não fica constante e não altera Golden Special, Electric ou Frenzy.
 
-| Fase | Pops típicos/min | Coins/pop | Renda bruta/min | Renda bruta aproximada da fase |
-|---|---:|---:|---:|---:|
-| Red | 30 | 5 | 150 | 1,500 |
-| Blue | 14 | 45 | 630 | 9,450 |
-| Green | 10 | 400 | 4,000 | 80,000 |
-| Purple | 8 | 2,000 | 16,000 | 400,000 |
-| Golden | 7 | 12,000 | 84,000 | 2,100,000 |
-| Rainbow | 7 | 90,000 | 630,000 | 9,450,000 |
-| **Campanha antes do boss** | — | — | — | **12,040,950** |
+## Economy Depth & Upgrade Choice Polish
 
-Essa renda é deliberadamente conservadora: ela não conta Coins extras de especiais, recompensas de conquistas ou escolhas de Diamonds. O núcleo da campanha deve funcionar sem eles.
+**Coin Reward** é revelado em Purple. Tem 10 níveis, concede +5% de Coins normais por nível (máximo +50%) e custa `max(1.000, recompensa do maior tier desbloqueado × 2,0 × 1,65^nível)`. O custo usa o maior tier desbloqueado, impedindo que retornar a um balão anterior barateie o investimento. A referência de retorno é 3–7 minutos: em Purple inicial, o primeiro nível custa 14K Coins e adiciona +5% de income; em Dark inicial, custa 200K e mantém a mesma janela relativa. É um investimento econômico, não um pico instantâneo de poder.
 
-### Principais sinks esperados
+**Diamond Reward** só aparece depois do primeiro Crystal estourado. Tem 3 níveis, custa 2/4/6 Diamonds e acrescenta +15% de chance por nível de receber 1 Diamond extra no evento Crystal (máximo +45%). O retorno é intencionalmente lento e complementar.
 
-- Click Damage até o nível 43: aproximadamente 349,495 Coins.
-- Critical Chance até 30%: 2,414,350 Coins.
-- Critical Damage até 3.25x: 878,700 Coins.
-- Equipamentos nos níveis planejados da tabela: aproximadamente 4,596,685 Coins.
-- Desbloqueios de progressão: 1,467,300 Coins.
+**Buff Frequency** só aparece após o primeiro Electric ou Frenzy Balloon, para que o jogador tenha visto um buff real. Mantém 25 níveis, +0,2 ponto percentual por nível, máximo +5% e exatamente 500 cliques manuais válidos por nível. O botão mostra `Lv./25`, bônus atual, `Clicks: atual / 500` e `MAX`; cada nível concluído salva imediatamente, enquanto os cliques intermediários não acionam save.
 
-O total planejado é próximo de 9.7M Coins. A diferença para a renda bruta esperada é uma margem intencional para decisões não ideais, upgrades extras em equipamentos, compras antes/depois de um gate e variação de desempenho. Não deve ser usada para pular todo o estágio seguinte de uma vez.
+### Global Upgrades
 
-### Purchase frequency targets
+| Upgrade | Reveal | Efeito | Custos (Diamonds) | Papel |
+|---|---|---|---|---|
+| Auto DPS Multiplier | 1º Diamond | +5% por nível, 10 níveis (+50%) | Curva compartilhada | Após soma do DPS dos equipamentos |
+| Coin Multiplier | 1º Diamond | +5% por nível, 10 níveis (+50%) | Curva compartilhada | Todas as recompensas de Coins |
+| Buff Duration | Green + buff conhecido | +5% por nível, 8 níveis (+40%) | Curva compartilhada | Próximos buffs: 12 → 16,8 s |
+| Buff Power | Purple + buff conhecido | +4% por nível, 10 níveis (+40% do bônus) | Curva compartilhada | Próximos buffs: ×2 → ×2,4 |
+| Special Balloon Frequency | Green + buff conhecido | +5% relativo, 8 níveis (+40%) | Curva compartilhada | Electric/Frenzy: 45 → 33 pops normais |
+| Diamond Event Frequency | Diamond introduzido | −6% intervalo, 5 níveis (−30%) | 2/4/7/11/16 | Crystal: 18 → 12,6 s |
+| Critical Mastery | Dark | +3% dano crítico final, 8 níveis (+24%) | Curva compartilhada | Base crítica continua ×2,5 |
+| Combo Mastery | Purple | +3% do bônus Combo, 8 níveis (+24%) | Curva compartilhada | 25 stacks: ×2,68 → ×3,0832 |
 
-- **0–10 min:** nova compra ou melhoria a cada poucos segundos/dezenas de segundos; alerta se a próxima opção levar mais de 60 s.
-- **10–45 min:** compras relevantes normalmente em até 90 s; alerta se houver mais de 2 min sem compra ou meta próxima.
-- **45–95 min:** decisões maiores podem pedir até 2 min; alerta acima de 3 min sem ação econômica disponível.
-- **95–115 min:** guardar para um upgrade grande pode levar até 3 min; alerta acima de 4 min sem decisão, evento ou progresso visível.
+A curva compartilhada, centralizada em GlobalUpgradeData, é **1/2/3/5/8/12/18/25/35/50 Diamonds**. Custa 159 para 10 níveis ou 74 para 8; o conjunto Global custa 813 Diamonds. Coin Magnet, Auto DPS Core e Critical Core conservam seus IDs e níveis, agora sob os nomes/efeitos acima. O rebalanceamento desses multiplicadores aplica-se também a saves antigos. Click Core permanece apenas como benefício legado já comprado, sem venda; não há novo buff Diamond direto de clique. Equipment Efficiency e Pop Reward foram omitidos por redundância. Diamond Reward continua seu investimento separado existente.
 
-## 11. Number Scaling and Display
+Sanity check: Red/Blue sem Diamonds não mudam; primeiros Diamonds liberam duas escolhas de custo 1. Em Green, Duration/Frequency requerem um buff visto; Purple adiciona Power/Combo; Dark adiciona Critical Mastery. Não existem novos requisitos de unlock por Diamonds. Auto DPS sem buff é no máximo ×1,5; com Electric máximo ×3,6. Combo máximo sobe de ×2,68 a ×3,0832; crítico final de ×2,5 a ×3,1. Buffs não acumulam consigo mesmos. Golden mantém 5 pops; Crystal não recebe o multiplicador de especiais. Endless usa os mesmos caps.
 
-| Trecho | Escala dominante |
-|---|---|
-| Early | unidades, dezenas, centenas e milhares |
-| Mid | milhares e centenas de milhares |
-| Late | milhões baixos e dezenas de milhões |
-| Boss | HP em milhões baixos |
+813 Diamonds correspondem a cerca de 2,85–4,07 horas no limite ideal de um Crystal perfeito a cada 12,6–18 s, antes de Diamond Reward, conflitos de eventos e tempo para estourá-los. Essa é uma referência de orçamento, não uma medição de campanha. Diamond Reward e jogo eficiente reduzem o tempo; validar a curva em playtest completo continua necessário.
 
-A maior ordem de grandeza esperada na campanha é **dezenas de milhões de Coins acumuladas**, com o maior HP comum em dezenas de milhares e o Balloon King em milhões baixos. Não há necessidade de bilhões ou notação científica na versão 1.0.
+### ROI, cadence e checkpoints
 
-Estratégia futura de exibição:
-
-```text
-1,250
-12.5K
-1.25M
-10.0M
-```
-
-Usar até duas casas decimais só quando elas acrescentarem leitura; valores de dano pequenos podem permanecer inteiros.
-
-## 12. Diamonds Economy
-
-Diamonds são opcionais e não participam de unlocks, HP ou custos de campanha. A expectativa é de **aproximadamente 11–13 Diamonds** antes da vitória para um jogador que interage com eventos, sem garantia de todos.
-
-### Fontes
-
-- Conquistas de campanha: 6 Diamonds distribuídos entre primeiro pop, primeiro equipamento, primeiro crítico, primeiro especial, desbloqueio importante e Rainbow.
-- Crystal Balloons: média de 5–6 Diamonds por campanha.
-- Vitória do Balloon King: 2 Diamonds extras, voltados ao pós-game.
-
-### Melhorias especiais
-
-| Melhoria | Custo | Efeito | Regra |
+| Checkpoint | Income/min estimado | Opções principais | Cadência de decisão |
 |---|---:|---|---|
-| Coin Magnet | 3 Diamonds | +5% Coins recebidas | Compra única, opcional |
-| Steady Hand | 4 Diamonds | +0.05 ao limite de combo | Compra única, opcional |
-| Workshop Polish | 5 Diamonds | +5% Auto DPS | Compra única, opcional |
+| Purple early | 45K–70K | Coin Reward, Dart Launcher, primeiro Global | compra útil a cada 1–3 min |
+| Purple late | 90K–180K | Pressure Gun, Diamond Reward após Crystal, buffs | 2–4 min |
+| Dark early | 0,8M–1,8M | Coin Reward, Popping Machine, Auto DPS Multiplier | 2–5 min |
+| Dark late | 3M–8M | PopBot, Buff Power, Combo Mastery | 3–6 min |
+| Rainbow early | 25M–80M | Cannon, Critical Mastery, caps restantes | 4–8 min |
 
-Os checkpoints e o Balloon King são viáveis sem nenhuma dessas melhorias. Elas enriquecem a campanha, mas perder um Crystal Balloon nunca bloqueia a vitória.
+Ativo: Click, Critical, Combo, Buff Frequency e Coin Reward convertem atenção em maior ritmo. Idle: Equipment, milestones e Auto DPS Core estabilizam DPS sem clique. Coin Reward é a ponte econômica entre os dois; Diamond Reward e Globals são escolhas de longo prazo. Nenhuma dessas categorias precisa ser maximizada para liberar o próximo tier.
 
-## 13. Special Balloons and Buffs
+Click Damage não tem nível máximo. Marcos infinitos a cada 25 níveis adicionam 10% da base por marco, sem composição exponencial. Valores: Lv.24=24; 25=27,5; 26=28,6; 49=53,9; 50=60; 75=97,5; 100=140; 250=500. O exemplo Lv.47 correto é 51,7 → 52,8 no nível 48. A barra usa `nível % 25`, mostra conclusão por 0,9 s e segue para o próximo marco. Nenhuma contagem de milestone é salva. Os caps existentes permanecem: Critical Chance Lv.117, 0,3 ponto percentual/nível (35,1% real); Critical Damage Lv.5, ×2,5 base. Combo mantém 1,5 s e 25 stacks, +7% por stack após o primeiro.
 
-### Frequência
+## Reveal progression
 
-Depois do desbloqueio do Blue Balloon, um especial elegível aparece em média a cada **180 s**. Para distribuição real, cada intervalo é escolhido entre 150 e 210 s; a média de simulação continua sendo 180 s. Não há especial durante o Balloon King e apenas um pode estar ativo por vez.
+| Conteúdo | Reveal requirement | Compra/uso após reveal | Momento esperado |
+|---|---|---|---|
+| Click Damage | Inicial | Coins | Imediato |
+| Needle | Click Damage Lv. 5 | 25 Coins, depois níveis | Red, primeiro grande unlock |
+| Blue Balloon | 220 Red pops + 300 Coins | Unlock normal | Fim de Red |
+| Critical Chance | Blue desbloqueado | 100 Coins inicial | Início de Blue |
+| Critical Damage | Critical Chance Lv. 3 | 250 Coins inicial | Durante Blue |
+| Dart | Needle Lv. 10 | Blue + Click Damage Lv. 6 + 500 Coins | Blue tardio |
+| Green Balloon | 180 Blue pops + 2.000 Coins | Unlock normal | Fim de Blue |
+| Combo | Green desbloqueado | Uso automático no clique | Início de Green |
+| Dart Launcher | Purple + Dart Lv. 10 + Click Damage Lv. 12 | 15.000 Coins, depois níveis | Início de Purple |
+| Purple Balloon | 150 Green pops + 20.000 Coins | Unlock normal | Próximo tier |
+| Golden Special | Blue desbloqueado | Evento temporário | Blue inicial |
+| Crystal | 20 Green pops | Evento temporário, 1 Diamond | Green final |
+| Coin Reward | Purple desbloqueado | +5% Coins por nível, 10 níveis | Purple inicial |
+| Diamond Reward | Primeiro Crystal estourado | +15% chance de Diamond extra por nível, 3 níveis | Purple médio |
+| Buff Frequency | Primeiro Electric ou Frenzy estourado | 500 cliques manuais por nível, 25 níveis | Purple médio |
+| Global Upgrades | Primeiro Diamond | Diamonds | Assim que a moeda for obtida |
+| Electric / Frenzy | Blue desbloqueado | Buff temporário sorteado a cada 45 pops normais | Blue em diante |
+| Pressure Gun | Launcher Lv. 10 + Click Lv. 16 | 120.000 Coins, depois níveis | Purple médio |
+| Dark Balloon | 120 Purple pops + 250.000 Coins + Pressure Gun Lv. 1 | Unlock normal | Fim de Purple |
 
-Em aproximadamente 105 minutos elegíveis, a expectativa é de **35 eventos**:
+Conteúdo HIDDEN não ocupa espaço. REVEALED_LOCKED mostra requisitos pendentes; AVAILABLE espera apenas a compra; OWNED evolui normalmente.
 
-| Tipo | Peso | Eventos esperados | Início |
-|---|---:|---:|---|
-| Golden Special Balloon | 50% | ~18 | Blue |
-| Crystal Balloon | 15% | ~5 | Green |
-| Electric Balloon | 20% | ~7 | Green |
-| Frenzy Balloon | 15% | ~5 | Purple |
+## Curva de campanha proposta
 
-Todos ficam visíveis por **10 s** e usam:
+| Checkpoint ativo | Tier | HP típico | Coins/pop | Dano total esperado |
+|---|---|---:|---:|---:|
+| 0–20 min | Red | 12–60 | 5–20 | 1–15 |
+| 20–50 min | Blue | 160–1.2K | 45–260 | 20–150 |
+| 50–100 min | Green | 8K–60K | 1.5K–12K | 200–2K |
+| 100–160 min | Purple | 400K–3M | 80K–600K | 5K–60K |
+| 160–230 min | Dark | 20M–150M | 4M–30M | 150K–2M |
+| 230–300 min | Rainbow | 1B–8B | 200M–1.5B | 5M–100M |
+| 300–360 min | Balloon King | 30B+ | campanha | 100M+ |
 
-```text
-Special HP = round(current normal balloon base HP × 0.40)
-```
+Faixas, e não números fixos por pop, permitem variação de upgrades e de ritmo. A recompensa média de cada tier deve manter sua compra relevante em aproximadamente 1–3 minutos de jogo ativo; unlocks maiores podem demandar 5–10 minutos, desde que exibam o progresso claramente.
 
-Essa proporção é estourável em poucos segundos pelo poder esperado do estágio, mas ainda pede atenção. Se o especial expirar, o balão normal de progressão permanece intacto e o jogador não perde uma condição necessária.
+## Equipamentos e milestones
 
-### Rewards and buffs
+Needle e Dart implementam os dois primeiros marcos: nível 10 (×2) e nível 25 (×2 adicional). Os marcos 50 e 100 continuam planejados para equipamentos futuros, após novo passe de dados e playtest. Custos e DPS devem ser calculados juntos para que o próximo equipamento complemente — e não invalide — os anteriores.
 
-| Especial | Recompensa | Buff | Duração | Stacking |
-|---|---|---|---:|---|
-| Golden Special Balloon | Coins iguais a 2 pops normais do tier atual | — | — | — |
-| Crystal Balloon | 1 Diamond + Coins de 1 pop normal | — | — | — |
-| Electric Balloon | Coins de 1 pop normal | Auto DPS ×1.50 | 20 s | Não acumula; novo evento renova duração |
-| Frenzy Balloon | Coins de 1 pop normal | Click Damage ×1.35; combo mínimo 1.25x | 15 s | Não acumula; novo evento renova duração |
-
-Os bônus de especiais são excluídos da renda e DPS-base usados nos checkpoints. Eles devem transformar um bom momento em um momento excelente, não compensar uma economia quebrada.
-
-## 14. Progression Checkpoints
-
-| Tempo | Tier atual | Click Damage | Critical Chance | Critical Multiplier | Combo médio | Manual DPS | Auto DPS | Total DPS | Renda/min | Patrimônio disponível típico* | Marco principal |
-|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 10 min | Blue | 5 | 5% | 2.00x | 1.20x | 25 | 6 | 31 | 630 | ~400 | Dart e primeiro crítico |
-| 25 min | Green | 13 | 10% | 2.25x | 1.25x | 73 | 44 | 117 | 4,000 | ~2,000 | Dart Launcher e combo |
-| 45 min | Purple | 37 | 15% | 2.50x | 1.30x | 236 | 202 | 438 | 16,000 | ~25,000 | Pressure Gun |
-| 70 min | Golden | 101 | 20% | 2.75x | 1.30x | 709 | 822 | 1,531 | 84,000 | ~100,000 | Popping Machine |
-| 95 min | Rainbow | 276 | 25% | 3.00x | 1.35x | 2,236 | 3,048 | 5,284 | 630,000 | ~600,000 | PopBot |
-| 110 min | Rainbow/prep | 368 | 30% | 3.25x | 1.35x | 3,329 | 9,310 | 12,639 | 630,000 | ~1,000,000 | Boss desbloqueado |
-| 115 min | Balloon King | 425 | 30% | 3.25x | 1.35x | 3,844 | 17,404 | 21,248 | — | compras convertidas em poder | Anti-Balloon Cannon |
-
-\* Patrimônio disponível é uma faixa de liquidez após compras típicas, não a renda total. Jogadores podem guardar mais ou menos conforme suas escolhas.
-
-### Checkpoint calculations
-
-Exemplos que devem continuar verdadeiros em uma futura simulação:
-
-```text
-At 45 min:
-Manual DPS = 37 × 4 × [1 + 0.15 × (2.50 - 1)] × 1.30 ≈ 236
-Total DPS = 236 + 202 = 438
-Purple TTK = 2,800 / 438 ≈ 6.4 s
-
-At 115 min:
-Manual DPS = 425 × 4 × [1 + 0.30 × (3.25 - 1)] × 1.35 ≈ 3,844
-Total DPS = 3,844 + 17,404 = 21,248
-Balloon King baseline duration = 4,200,000 / 21,248 ≈ 197.7 s
-```
-
-## 15. Balloon King
-
-### Entry requirements and duration
-
-- Requer 80 Rainbow pops, 750,000 Coins e a compra do Anti-Balloon Cannon.
-- HP: **4,200,000**.
-- Poder de entrada modelado: 3,844 Manual DPS + 17,404 Auto DPS = 21,248 Total DPS.
-- Duração-base: aproximadamente **3 min e 18 s**; a meta aceitável em playtest é 3–4 min.
-- Críticos e combo encurtam a luta quando o jogador permanece ativo; a automação impede que uma pausa curta torne a luta impossível.
-
-### Boss phases
-
-| HP restante | Fase | Alteração de balanceamento |
+| Faixa | Equipamento desbloqueado | Papel |
 |---|---|---|
-| 100–70% | Royal Arrival | Sem modificador; estabelece a leitura da luta |
-| 70–30% | Cracked Crown | Intensifica arte, som e reação visual; sem nova mecânica ou penalidade numérica |
-| 30–0% | Final Frenzy | Intensifica efeitos e música; sem nova mecânica ou penalidade numérica |
+| Red | Needle | primeira automação |
+| Blue | Dart | DPS rápido |
+| Green | Dart Launcher / Pressure Gun | crescimento médio |
+| Purple | Popping Machine | produção pesada |
+| Dark | PopBot | escala alta |
+| Rainbow | Anti-Balloon Cannon | produção final |
 
-As fases são visuais e de feedback. Não reduzem DPS do jogador, não exigem reflexos de action game e não introduzem sistemas não ensinados. Isso preserva o TTK calculado e mantém o boss como ápice do loop já conhecido.
+## Métricas de validação
 
-## 16. Victory Conditions
+Registrar tempo de tier, pops/min, Coins/min, dano manual/automático, tempo entre compras e tempo até o próximo objetivo. Corrigir uma dead zone por recompensa, desconto, milestone ou unlock adicional — nunca apenas elevando custos ou HP.
 
-A única condição necessária para vencer é derrotar o Balloon King após desbloqueá-lo. Não há requisito de maximizar upgrades, completar conquistas, capturar especiais, comprar Diamonds ou entrar no Endless.
+## Late game implementado
 
-A recompensa de 1,000,000 Coins e 2 Diamonds ocorre após a vitória, portanto não pode ser necessária para atingir o próprio boss. Ela serve para a celebração e para iniciar o pós-game com liberdade.
+Balloon Popping Machine: 2.500 DPS base, 250K Coins, reveal em Dark com Pressure Gun Lv. 3, Click Lv. 18 e 10 pops Dark. PopBot: 16K DPS base, 2M Coins, reveal em Machine Lv. 10, Click Lv. 22 e 60 pops Dark. Anti-Balloon Cannon permanece o objetivo de Rainbow. Os três têm 100 níveis e milestones ×2 nos níveis 10/25, ×3 nos níveis 50/100.
 
-## 17. Achievement Rewards
+Rainbow exige 120 Dark pops, 2M Coins e PopBot Lv. 1. Durante Dark, o alvo de pacing é uma compra útil a cada 1–3 minutos de atividade; caso a próxima compra significativa leve mais que isso sem Click, equipamento, crítico ou Global Upgrade acessível, o trecho é uma dead zone e deve ser reduzido no próximo passe.
 
-As recompensas são deliberadamente pequenas e não entram nos gates de Coins.
+Buff Power, Combo Mastery e Critical Mastery compõem os investimentos finais opcionais. Buffs e specials continuam relativos e relevantes em Rainbow. Prontidão interna para Balloon King exige Rainbow desbloqueado e Anti-Balloon Cannon Lv. 1.
 
-| Marco | Recompensa |
-|---|---|
-| Primeiro pop | 1 Diamond |
-| Primeiro equipamento | 1 Diamond |
-| Primeiro crítico | 1 Diamond |
-| Primeiro especial | 1 Diamond |
-| Desbloqueio de Purple | 1 Diamond |
-| Desbloqueio de Rainbow | 1 Diamond |
-| Vitória contra Balloon King | 2 Diamonds |
-
-Se a taxa de Diamonds se mostrar alta demais, reduzir a fonte de Crystal Balloons é preferível a aumentar o custo de upgrades especiais, pois o jogador deve continuar entendendo seus valores.
-
-## 18. Anti-Dead-Zone and Anti-Snowball Rules
-
-### Dead zones
-
-Uma dead zone é suspeita se, no período abaixo, o jogador não puder comprar, guardar com progresso claro, perseguir unlock ou aproveitar uma ação relevante:
-
-| Faixa | Limite tolerável sem decisão | Ação de ajuste |
-|---|---:|---|
-| 0–10 min | 60 s | Reduzir custo inicial ou aumentar recompensa de Red |
-| 10–45 min | 2 min | Rever custo do próximo upgrade/equipamento ou HP do tier |
-| 45–95 min | 3 min | Rever gate, renda por pop e primeiro nível do novo equipamento |
-| 95–115 min | 4 min | Rever custo do boss, PopBot/Cannon ou recompensa de Rainbow |
-
-### Snowball
-
-- Um novo equipamento não deve permitir comprar imediatamente todo o próximo estágio.
-- Um primeiro nível novo deve elevar o Auto DPS em aproximadamente 15–25%, nunca eliminar o tier atual sozinho.
-- O próximo tier deve começar com TTK de cerca de 5–8 s; se começar abaixo de 2 s, a recompensa ou HP do novo tier está baixa demais.
-- Se o jogador ultrapassar o checkpoint de tier em mais de 25% de DPS antes de cumprir seus pops requeridos, aumentar requisito de pops ou revisar o ganho do equipamento anterior antes de aumentar apenas o HP.
-
-## 19. Balance Risks
-
-### Clicking becomes irrelevant
-
-O risco principal de uma curva automática forte é o clique virar decoração. Medir a proporção Manual/Auto nos checkpoints, manter críticos limitados e preservar combo no dano manual evita que isso aconteça.
-
-### Economy walls
-
-Se a renda real ficar abaixo da tabela por causa de menus, tempo de animação ou decisões, os custos devem cair antes de aumentar o DPS do jogador. O objetivo é recuperar frequência de decisão, não acelerar tudo indiscriminadamente.
-
-### Special balloons dominate the economy
-
-Se mais de 10% das Coins de uma campanha típica vierem de Golden Specials, reduzir sua recompensa de 2 pops para 1 pop antes de reduzir a frequência. A economia-base não pode depender de eventos.
-
-### Late-game overspend
-
-Há liquidez planejada no Rainbow para acomodar escolhas diferentes. Se ela permitir que um jogador compre todos os níveis restantes muito antes do boss, subir apenas os custos tardios de Popping Machine, PopBot e Cannon; não mexer nos custos iniciais que sustentam o onboarding.
-
-## 20. Validation Metrics and Tuning Guidelines
-
-Quando o jogo existir, registrar localmente em debug ou telemetria de desenvolvimento:
-
-- tempo total de sessão e tempo de conclusão;
-- tempo de desbloqueio de cada tier;
-- quantidade de pops por tier e TTK médio;
-- total de cliques e CPS médio durante períodos ativos;
-- DPS manual, Auto DPS e proporção entre ambos;
-- compras, custo, nível e ordem de compra;
-- Coins/min, Coins guardadas e tempo entre compras relevantes;
-- especiais vistos, capturados e expirados;
-- Diamonds obtidos e gastos;
-- duração e taxa de vitória do Balloon King.
-
-### Acceptance ranges for the first balance pass
-
-| Métrica | Faixa desejada |
-|---|---|
-| Primeira vitória de jogador ativo típico | 105–135 min |
-| TTK comum após entrada de tier | 5–8 s, caindo com compras |
-| Balloon King | 3–4 min |
-| Manual DPS no Rainbow inicial | 35–45% do Total DPS |
-| Manual DPS no boss | 15–25% do Total DPS |
-| Especiais vistos antes do boss | ~30–40 |
-| Diamonds antes da vitória | ~11–13 |
-
-### Tuning order
-
-1. Validar tempo e TTK dos tiers sem especiais nem Diamonds.
-2. Ajustar recompensa e custos para eliminar dead zones.
-3. Ajustar primeiro nível de equipamentos para garantir salto perceptível sem snowball.
-4. Ajustar Combo/Critical apenas se o clique estiver fraco ou dominante demais.
-5. Ajustar especiais como bônus; nunca usá-los para consertar a economia-base.
-6. Ajustar HP do Balloon King por último, após confirmar o poder real do checkpoint de 115 min.
-
-As fórmulas deste documento são determinísticas, centralizadas e reproduzíveis por uma futura simulação. Qualquer alteração de HP, recompensa, custo ou DPS deve ser comparada com os checkpoints, TTK, renda por minuto e duração de campanha acima antes de entrar no jogo.
+Balloon King usa 30M HP. A referência é uma luta ativa de poucos minutos com uma build Rainbow razoável; fases ocorrem em 70% e 30%. Specials novos ficam suspensos durante o boss; buffs já ativos continuam. Após a vitória, Endless reutiliza Rainbow e a economia existente.

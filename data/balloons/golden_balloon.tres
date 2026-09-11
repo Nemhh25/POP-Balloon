@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BalloonData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/balloon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"golden_balloon"
+display_name = "Dark Balloon"
+tier_index = 5
+base_health = 1800000.0
+coin_reward = 100000
+display_color = Color(0.12, 0.09, 0.26, 1)
+unlock_pop_requirement = 120
+unlock_coin_requirement = 250000
+unlock_required_equipment_id = &"pressure_gun"
+unlock_required_equipment_level = 1

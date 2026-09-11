@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/equipment_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"anti_balloon_cannon"
+display_name = "Anti-Balloon Cannon"
+description = "Final automatic cannon before the King."
+base_dps = 100000.0
+base_cost = 50000000
+max_level = 100
+required_click_damage_level = 28
+required_balloon_tier = 6
+milestone_levels = PackedInt32Array(10, 25, 50, 100)
+milestone_multipliers = PackedFloat32Array(2, 2, 3, 3)

@@ -11,4 +11,6 @@ base_dps = 1.0
 base_cost = 25
 max_level = 40
 required_click_damage_level = 2
-
+required_balloon_tier = 1
+milestone_levels = PackedInt32Array(10, 25)
+milestone_multipliers = PackedFloat32Array(2, 2)

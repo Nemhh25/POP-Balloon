@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RevealRuleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/reveal_rule_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"electric_balloon"
+display_name = "Electric Balloon"
+required_balloon_tier = 2

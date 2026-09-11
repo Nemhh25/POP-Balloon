@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BalloonData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/balloon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"frenzy_balloon"
+display_name = "Frenzy Balloon"
+category = 1
+tier_index = 4
+base_health = 4000.0
+coin_reward = 20000
+display_color = Color(1, 0.25, 0.72, 1)
+special_effect = 4

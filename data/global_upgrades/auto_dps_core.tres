@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlobalUpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/global_upgrade_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"auto_dps_core"
+display_name = "Auto DPS Multiplier"
+description = "Increases total Auto DPS after adding all equipment damage."
+base_diamond_cost = 1
+max_level = 10
+bonus_per_level = 0.05

@@ -8,9 +8,8 @@ id = &"blue_balloon"
 display_name = "Blue Balloon"
 category = 0
 tier_index = 2
-base_health = 160.0
-coin_reward = 45
+base_health = 240.0
+coin_reward = 60
 display_color = Color(0.2, 0.5, 0.98, 1)
 unlock_pop_requirement = 220
 unlock_coin_requirement = 300
-

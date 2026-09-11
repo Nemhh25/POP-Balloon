@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RevealRuleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/reveal_rule_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"pressure_gun"
+display_name = "Pressure Gun"
+required_click_damage_level = 16
+required_balloon_tier = 4
+required_equipment_id = &"dart_launcher"
+required_equipment_level = 10

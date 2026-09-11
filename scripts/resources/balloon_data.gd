@@ -7,6 +7,14 @@ enum Category {
 	BOSS,
 }
 
+enum SpecialEffect {
+	NONE,
+	GOLDEN_COINS,
+	CRYSTAL_DIAMONDS,
+	ELECTRIC_AUTODPS,
+	FRENZY_CLICK,
+}
+
 @export var id: StringName
 @export var display_name: String
 @export var category: Category = Category.NORMAL
@@ -17,4 +25,6 @@ enum Category {
 @export var display_color: Color = Color.WHITE
 @export var unlock_pop_requirement: int = 0
 @export var unlock_coin_requirement: int = 0
-
+@export var unlock_required_equipment_id: StringName
+@export var unlock_required_equipment_level: int = 0
+@export var special_effect: SpecialEffect = SpecialEffect.NONE

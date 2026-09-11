@@ -8,4 +8,6 @@ extends Resource
 @export var base_cost: int = 0
 @export var max_level: int = 1
 @export var required_click_damage_level: int = 1
-
+@export var required_balloon_tier: int = 1
+@export var milestone_levels := PackedInt32Array([10, 25])
+@export var milestone_multipliers := PackedFloat32Array([2.0, 2.0])

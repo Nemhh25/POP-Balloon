@@ -11,9 +11,18 @@ config_version=5
 [application]
 
 config/name="POP Balloon"
-run/main_scene="res://scenes/main/game.tscn"
+config/version="0.9.0-playtest"
+run/main_scene="res://scenes/main/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.svg"
+boot_splash/show_image=false
+boot_splash/use_filter=false
+config/icon="uid://bxnvsilhttpwe"
+
+[autoload]
+
+SaveManager="*res://autoload/save_manager.gd"
+AudioManager="*res://autoload/audio_manager.gd"
+GameFlow="*res://autoload/game_flow.gd"
 
 [display]
 
@@ -21,6 +30,8 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/size/min_width_override=960
+window/size/min_height_override=540
 
 [physics]
 

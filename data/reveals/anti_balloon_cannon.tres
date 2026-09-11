@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RevealRuleData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/reveal_rule_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"anti_balloon_cannon"
+display_name = "Anti-Balloon Cannon"
+required_click_damage_level = 28
+required_balloon_tier = 6
+required_equipment_id = &"popbot"
+required_equipment_level = 10

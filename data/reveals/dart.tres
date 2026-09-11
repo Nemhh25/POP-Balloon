@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RevealRuleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/reveal_rule_data.gd" id="1_reveal"]
+
+[resource]
+script = ExtResource("1_reveal")
+id = &"dart"
+display_name = "Dart"
+required_equipment_id = &"needle"
+required_equipment_level = 10

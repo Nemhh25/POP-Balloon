@@ -12,6 +12,7 @@ build/
 builds/
 export/
 exports/
+Play Test/
 
 # Logs
 *.log

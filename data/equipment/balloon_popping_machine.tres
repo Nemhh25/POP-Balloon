@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/equipment_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"balloon_popping_machine"
+display_name = "Balloon Popping Machine"
+description = "Heavy automated popping."
+base_dps = 2500.0
+base_cost = 250000
+max_level = 100
+required_click_damage_level = 18
+required_balloon_tier = 5
+milestone_levels = PackedInt32Array(10, 25, 50, 100)
+milestone_multipliers = PackedFloat32Array(2, 2, 3, 3)

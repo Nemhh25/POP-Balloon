@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/balloons/balloon.gd" id="1_balloon"]
 
 [node name="Balloon" type="Control"]
-custom_minimum_size = Vector2(280, 360)
+custom_minimum_size = Vector2(240, 240)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,3 +13,29 @@ grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("1_balloon")
 
+[node name="HealthLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+anchor_bottom = 0.09
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.9)
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+text = "HP: 0 / 0"
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.08
+anchor_top = 0.1
+anchor_right = 0.92
+anchor_bottom = 0.125
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+show_percentage = false

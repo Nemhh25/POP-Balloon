@@ -1,793 +1,147 @@
 # POP Balloon — Technical Design
 
-**Status:** arquitetura técnica da versão 1.0  
-**Fontes de verdade:** `GAME_DESIGN.md` define a experiência; `BALANCE.md` define números e ritmo; este documento define a implementação.  
-**Projeto verificado:** Godot 4.7, renderer GL Compatibility, `canvas_items` + `expand` para stretch.
+**Status:** arquitetura Godot 4.7 para a campanha Red → Dark → Rainbow → Balloon King e Endless.
 
-Este documento descreve a menor arquitetura capaz de suportar a campanha completa de POP Balloon. Não adiciona regras de game design ou valores de balanceamento; quaisquer números mencionados devem ser lidos de `BALANCE.md` e configurados em dados estáticos.
-
-## 1. Stack and Constraints
-
-- **Engine:** Godot 4.7 (Godot 4.x).
-- **Linguagem:** GDScript 2.0 tipado.
-- **Formato:** jogo 2D de interface e apresentação visual.
-- **Plataforma inicial:** PC/desktop, single-player.
-- **Persistência:** arquivo local em `user://`.
-- **Renderização inicial:** GL Compatibility, conforme `project.godot`.
-- **Fora da stack:** C#, C++, GDExtension, backend, contas online, cloud save, multiplayer e analytics remoto.
-
-APIs e sintaxe devem ser compatíveis com Godot 4.x; não usar padrões de Godot 3.x.
-
-## 2. Architectural Principles
-
-- Um `GameSession` da scene de jogo coordena a partida; ele não é Autoload.
-- `GameState` é a fonte de verdade do estado runtime e persistente; UI apenas o apresenta.
-- Dados repetíveis vivem em Resources estáticos; níveis, moedas e HP atual vivem no estado runtime.
-- Services pequenos cuidam de economia, upgrades, equipamentos, progressão, combate, buffs e estatísticas. Eles não precisam ser Nodes nem singletons por padrão.
-- `Balloon` apresenta e recebe dano; não concede moedas, compra upgrades nem salva.
-- A UI atualiza por signals e chamadas de apresentação explícitas, nunca por polling geral em `_process()`.
-- Fórmulas de `BALANCE.md` ficam centralizadas em uma única camada de balanceamento.
-- Efeitos visuais e áudio recebem resultados de gameplay; não determinam regras de gameplay.
-
-## 3. Project Structure
+## Estrutura
 
 ```text
-res://
-├── autoload/
-│   ├── save_manager.gd
-│   └── audio_manager.gd
-├── scenes/
-│   ├── main/
-│   │   ├── main_menu.tscn
-│   │   └── game.tscn
-│   ├── balloons/
-│   │   └── balloon.tscn
-│   ├── ui/
-│   │   ├── main_hud.tscn
-│   │   ├── upgrade_panel.tscn
-│   │   ├── equipment_panel.tscn
-│   │   ├── progression_panel.tscn
-│   │   ├── notification_layer.tscn
-│   │   ├── pause_menu.tscn
-│   │   └── victory_overlay.tscn
-│   └── effects/
-│       ├── damage_number.tscn
-│       └── pop_effect.tscn
-├── scripts/
-│   ├── game/
-│   │   ├── game_session.gd
-│   │   ├── game_state.gd
-│   │   ├── balance_service.gd
-│   │   ├── combat_resolver.gd
-│   │   ├── buff_service.gd
-│   │   └── statistics_service.gd
-│   ├── balloons/
-│   │   ├── balloon.gd
-│   │   └── balloon_controller.gd
-│   ├── services/
-│   │   ├── economy_service.gd
-│   │   ├── equipment_service.gd
-│   │   ├── upgrade_service.gd
-│   │   ├── progression_service.gd
-│   │   └── achievement_service.gd
-│   ├── resources/
-│   │   ├── game_balance_data.gd
-│   │   ├── content_catalog_data.gd
-│   │   ├── balloon_data.gd
-│   │   ├── equipment_data.gd
-│   │   ├── buff_data.gd
-│   │   └── achievement_data.gd
-│   ├── ui/
-│   ├── effects/
-│   └── utils/
-│       └── number_formatter.gd
-├── data/
-│   ├── balance/
-│   ├── balloons/
-│   ├── equipment/
-│   ├── buffs/
-│   └── achievements/
-└── assets/
-    ├── sprites/
-    ├── audio/
-    ├── fonts/
-    └── particles/
+Resources → GameState/services → GameSession → BalloonController → Balloon/UI
 ```
 
-`scripts/resources/` contém as classes de Resource; `data/` contém suas instâncias configuradas. Essa separação permite alterar conteúdo sem misturar as classes que leem os dados com os próprios dados. Nenhuma pasta deve ser criada antes de uma feature realmente precisar dela.
+`GameState` mantém economia, níveis, unlocks, estatísticas e o estado persistente do balão normal atual. `GameSession` coordena regras e sinais. `BalloonController` controla exclusivamente uma instância visível central. A UI apenas apresenta estado.
 
-## 4. Scenes and Game Flow
-
-### Entry and transition model
-
-- **Entrada planejada:** `main_menu.tscn`.
-- **Partida:** `game.tscn`, criada ao escolher Play/Continue ou New Game.
-- **Vitória:** `victory_overlay.tscn` sobre a partida, não uma scene de jogo independente. Isso preserva estatísticas e permite abrir Endless sem recriar o estado.
-- **Pausa:** `pause_menu.tscn` como overlay da partida.
-
-Não é necessário um roteador global de scenes. O menu inicia a partida e a própria `Game` controla overlays locais. O menu futuro contém apenas Continue/Play, New Game/Reset com confirmação, Settings e Quit.
-
-### Game scene composition
+## Discovery e reveal requirements
 
 ```text
-Game (Control) [game.gd: apresentação e referências de alto nível]
-├── GameSession (Node) [game_session.gd: coordenação runtime]
-│   ├── AutoDamageTimer
-│   ├── ComboGraceTimer
-│   ├── ComboDecayTimer
-│   ├── BuffTimer
-│   ├── PlaytimeTimer
-│   └── AutosaveTimer
-├── GameView (Control)
-│   ├── BalloonArea (Control)
-│   │   ├── BalloonContainer (Control)
-│   │   └── SpecialBalloonLayer (Control)
-│   └── GameplayEffects (Control)
-├── UI (Control)
-│   ├── MainHUD
-│   ├── UpgradePanel
-│   ├── EquipmentPanel
-│   ├── ProgressionPanel
-│   └── BuffDisplay
-└── OverlayLayer (CanvasLayer)
-    ├── NotificationLayer
-    ├── PauseMenu
-    └── VictoryOverlay
+RevealRuleData (dados) → RevealService (avaliação) → GameSession (sinais) → MainHUD (visibilidade)
 ```
 
-`GameSession` é o controlador de fluxo da partida e proprietário dos serviços runtime. `Game.gd` não deve conter fórmulas, saldo ou regras de progressão; ele apenas liga scene, sessão e UI. `GameView` e UI são apresentação. Timers centralizados mantêm sistemas temporais fora de dezenas de Nodes individuais.
+`RevealRuleData` cobre nível de Click Damage, nível de Critical Chance, tier normal desbloqueado, nível de equipamento, pops de um balão específico e Diamonds obtidos. Todos os campos configurados são requisitos cumulativos; não há rule engine genérico.
 
-### Scene responsibilities
+`RevealService` mantém os estados HIDDEN, REVEALED_LOCKED, AVAILABLE e OWNED e recalcula reveals a partir de `GameState` e catálogo. `GameSession` o atualiza após compra, pop ou unlock e emite `content_revealed`/`reveal_states_changed`. `MainHUD` não contém regras de progressão: apenas oculta HIDDEN, apresenta REVEALED_LOCKED e faz highlight breve de uma descoberta.
 
-| Scene | Responsabilidade |
-|---|---|
-| `main_menu.tscn` | Iniciar/carregar sessão, abrir settings e pedir confirmação de reset |
-| `game.tscn` | Compor sessão, área jogável, HUD e overlays |
-| `balloon.tscn` | Apresentar um alvo clicável, HP local e feedback de dano/pop |
-| `main_hud.tscn` | Coins, Diamonds, dano, Auto DPS, combo e HP atual |
-| `upgrade_panel.tscn` | Mostrar e solicitar compras dos três upgrades |
-| `equipment_panel.tscn` | Mostrar equipamentos, preço, nível e DPS |
-| `progression_panel.tscn` | Próximo tier, requisitos e progresso |
-| `notification_layer.tscn` | Unlocks, conquistas, compras e mensagens curtas |
-| `victory_overlay.tscn` | Conclusão, estatísticas, créditos e acesso ao Endless |
-| `damage_number.tscn` / `pop_effect.tscn` | Efeitos descartáveis, sem regra de economia ou progressão |
-
-Não criar uma scene para cada label ou botão. Componentes são agrupados por responsabilidade visual.
-
-## 5. Runtime State and Ownership
-
-`GameState` é uma classe runtime simples, de propriedade de `GameSession`. Não é um singleton e não pertence à UI. Ela contém o estado autoritativo da sessão:
+## BalloonController
 
 ```text
-currency
-  coins
-  diamonds
-
-upgrades
-  click_damage_level
-  critical_chance_level
-  critical_damage_level
-
-equipment_levels
-  { equipment_id: level }
-
-progression
-  current_normal_balloon_id
-  current_balloon_health
-  normal_variation_index
-  unlocked_balloon_ids
-  current_tier_id
-  boss_unlocked
-  campaign_completed
-  endless_unlocked
-
-statistics
-  clicks
-  balloons_popped
-  special_balloons_popped
-  coins_earned
-  diamonds_earned
-  total_damage
-  largest_critical
-  active_play_seconds
-
-runtime_only
-  combo_stacks
-  active_buffs
-  active_special_balloon
-  pause_state
+BalloonController
+├── current Balloon
+├── BalloonContainer (Control centralizado)
+└── respawn único após pop
 ```
 
-`current_balloon_health` é persistido para que sair no meio de um balão normal não reinicie a meta. Combo, buffs em andamento, especiais visíveis, tweens, partículas e efeitos de áudio não são persistidos: ao carregar, o balão normal é restaurado e estados temporários expiram de forma segura.
+Responsabilidades:
 
-Os serviços recebem `GameState` por referência da sessão. Eles não armazenam uma segunda cópia de Coins, níveis ou estatísticas.
+- instanciar um único `Balloon` para `current_normal_balloon_id`;
+- restaurar ou reiniciar HP com a variação determinística atual;
+- aplicar clique e Auto DPS ao mesmo alvo;
+- encaminhar dano e pop para `GameSession`;
+- depois do pop, incrementar a variação e criar o próximo balão do tier atual.
 
-## 6. Autoloads
+`Balloon` conhece somente HP, clique e feedback. Ele não entrega Coins, não escolhe tier e não grava save. `BalloonController` pode substituir temporariamente o normal por um special e restaurar o HP normal persistido ao fim; não há pool, slots ou seleção de múltiplos alvos.
 
-| Autoload | Decisão | Responsabilidade |
-|---|---|---|
-| `SaveManager` | Sim | Ler, validar, versionar, serializar, gravar e resetar snapshots de `GameState` |
-| `AudioManager` | Sim | Persistir música/SFX entre menu e jogo, controlar buses e variações de som |
-| `GameState` | Não | É exclusivo de uma sessão e deve ser fácil de recriar/testar |
-| Economy/Equipment/Upgrade/Progression services | Não | São serviços da `GameSession`, sem necessidade global |
-| BalloonController | Não | Controla somente a partida atual |
+## Midgame systems
 
-`SaveManager` é global porque precisa sobreviver a transições e lidar com o arquivo local. `AudioManager` justifica-se porque música, volumes e SFX passam por menu, jogo e vitória. Nenhum outro manager deve virar singleton sem uma necessidade global demonstrável.
+`SpecialBalloonScheduler` usa o total de pops normais para a rotação Electric/Frenzy e para Golden Special, mantém um timer exclusivo data-driven para o evento Diamond/Crystal e um timer one-shot de duração. Electric e Frenzy são revelados juntos ao desbloquear Blue; no marco compartilhado o sorteio evita repetição imediata. O upgrade Diamond Event Frequency altera somente o timer Crystal. Se o Crystal vencer enquanto outro especial ocupa o slot, ele entra em estado pendente e inicia assim que esse slot é liberado, sem perder o ciclo. Pops especiais permanecem separados de pops normais, evitando progresso ou recompensa duplicados.
 
-## 7. Static Content Resources
+`EconomyService` centraliza Coins e Diamonds. `GlobalUpgradeData` e `GlobalUpgradeService` mantêm investimentos em Diamonds, com níveis persistidos; seus multiplicadores são consumidos por `GameSession`. `BuffService` mantém apenas buffs ativos em memória, agenda o vencimento mais próximo e renova a duração da mesma chave sem stack ilimitado. Auto DPS e clique consultam esses multiplicadores no momento do dano.
 
-### Content catalog
+## Diamond Progression Expansion
 
-`ContentCatalogData` é um Resource único de composição, exportado para a `GameSession` ou scene `Game`. Ele referencia o balance global e as listas ordenadas de balões, equipamentos, buffs e conquistas. Isso evita caminhos de carregamento repetidos e centraliza a validação de IDs no início da sessão.
+`BalanceService` deriva `floor(level/25)` e aplica `base * (1 + count * 0.10)`. Base linear e níveis ilimitados permanecem; não há contador persistido nem marcos enumerados. `GameSession.purchase_completed` indica milestone e reutiliza o SFX de compra especial. `UpgradeCard` exibe a barra módulo 25 e conclusão por 0,9 s, inclusive ao atravessar marcos em lote.
 
-### Planned Resource classes
+Oito cards Global: Coin/Auto DPS Multiplier, Buff Duration/Power, Special Balloon Frequency, Diamond Event Frequency, Critical/Combo Mastery. Os sete recursos globais usam `GlobalUpgradeData.cost_at_level` com curva única (1,2,3,5,8,12,18,25,35,50), usada tanto pela compra quanto pela cotação ×1/×10/MAX. Dados definem cap, tier de reveal e necessidade de buff conhecido. O passe atual reduz os reveals para Green (Duration/Frequency), Purple (Power/Combo) e Dark (Critical Mastery). A GameSession bloqueia compras de conteúdo oculto. Diamond Event Frequency mantém seu campo, serviço, curva 2/4/7/11/16 e botão anteriores, movido para Global; não há estado duplicado.
 
-| Resource | Uso estático |
-|---|---|
-| `GameBalanceData` | Fórmulas e tabelas de `BALANCE.md`: custos, limites, combo, variação de HP, especiais e fases do boss |
-| `BalloonData` | Dados de balões normais, especiais e boss: ID, categoria, nome, tier, HP/recompensa base, visual e configuração específica |
-| `EquipmentData` | ID, nome, descrição, ícone, Base DPS, Base Cost, nível máximo e tier de unlock |
-| `BuffData` | ID, alvo/modificador, duração, multiplicador e regra de renovação |
-| `AchievementData` | ID, título, condição simples, recompensa e texto de notificação |
-| `ContentCatalogData` | Referências às instâncias anteriores, em ordem de progressão |
+Coin Gain aplica-se também a Coins especiais; Golden usa 3× normal sem duplicar o global. Auto DPS global vem após soma dos equipamentos. Buff Power e Combo Power ampliam somente `(multiplicador_base - 1)` e recolocam o neutro 1. Duration/Power são lidos ao ativar/renovar buff. Critical Mastery aplica bônus separado apenas ao ataque crítico, preservando cap base. Special Frequency usa somente o contador Electric/Frenzy: `ceil(45 / (1+bônus))` pops normais; a seleção é aleatória e evita repetir o último buff quando ambos estão revelados. Crystal usa seu timer próprio e Golden mantém sua cadência de 5 pops.
 
-`UpgradeData` não é necessário inicialmente. Existem apenas três upgrades fixos, com fórmulas e tabelas diferentes; seus IDs e valores pertencem ao `GameBalanceData`, e `UpgradeService` os trata explicitamente. Isso é mais claro que um framework genérico para três casos conhecidos.
+Novos níveis vivem no dicionário existente `global_upgrade_levels`, com default zero em saves anteriores. IDs `coin_magnet`, `auto_dps_core`, `critical_core` são conservados com nomes/efeitos novos. `click_core` continua reconhecido para carregar níveis/benefício legado, mas marcado `legacy_only` e indisponível para compras. Versão do save e preferências permanecem iguais. A descoberta Global considera Diamonds já obtidos, mesmo depois de gastar todos.
 
-### BalloonData fields
+Cards dinâmicos usam o Theme e ícones existentes, nível/cap, bônus atual → próximo, custo Diamond explícito, MAX desativado e tooltip da área completa com custo. Tooltip só é atualizado quando muda, preservando hover. Textos novos usam `tr()` onde aplicável; o projeto não possui catálogo de traduções configurado e mantém o idioma inglês atual. Valores econômicos/reveal e limitações de pacing estão no BALANCE.md.
 
-Um único `BalloonData` usa uma enum curta (`NORMAL`, `SPECIAL`, `BOSS`) para manter a mesma scene reutilizável, sem hierarquia de classes. Campos comuns e específicos devem ser validados conforme a categoria:
+## Dano
 
 ```text
-id, display_name, category, texture, visual_variant
-base_health, coin_reward, diamond_reward
-
-normal: tier, unlock requirements
-special: spawn_weight, health_ratio, display_duration, buff_id
-boss: phase thresholds
+Clique em Balloon → GameSession calcula AttackResult → BalloonController aplica no alvo atual
+AutoDamageTimer (0,25 s) → DPS total × intervalo → mesmo alvo atual
 ```
 
-O `GameBalanceData` permanece a fonte das fórmulas; `BalloonData` armazena apenas configuração de conteúdo. Golden Balloon normal e Golden Special Balloon possuem IDs e categorias distintos.
+O clique aumenta um Combo transitório até 20 stacks; um `Timer` único o zera após 1,5 s sem clique. `CombatResolver` aplica o multiplicador de Combo e então sorteia Critical Hits a partir dos níveis persistentes de Critical Chance/Damage. `AttackResult` carrega dano, flag crítica e multiplicador de combo para feedback e estatísticas.
 
-### Static data versus runtime state
+Ao desbloquear um tier normal, `GameSession` troca `current_normal_balloon_id` e o controlador cria um alvo cheio do novo tier. A arquitetura futura de especiais pode substituir temporariamente esse alvo, salvando e restaurando o normal, sem introduzir alvos simultâneos.
 
-| Static data | Runtime state |
-|---|---|
-| HP/recompensa base, fórmula de custo, Base DPS, limites, requisitos, textura | Coins, Diamonds, níveis comprados, HP atual, combo, buffs, estatísticas, unlocks |
+## Estado e save
 
-Resources compartilhados nunca são alterados para registrar progresso de uma partida. Uma compra muda `GameState.equipment_levels`, não `EquipmentData`.
-
-## 8. Core Runtime Services
-
-| Serviço | Responsabilidade | Não deve fazer |
-|---|---|---|
-| `BalanceService` | Centralizar cálculo de dano, custo, DPS, reward, HP efetivo e formatação de valores de balanceamento | Atualizar UI ou salvar |
-| `EconomyService` | Validar e adicionar/gastar Coins e Diamonds | Conhecer Labels ou Balloon visual |
-| `UpgradeService` | Comprar níveis de Click Damage, Critical Chance e Critical Damage | Duplicar fórmulas |
-| `EquipmentService` | Validar unlocks, comprar níveis e calcular Auto DPS total | Criar um script por equipamento |
-| `ProgressionService` | Avaliar gates, tier atual, boss, campanha e Endless | Controlar efeitos visuais |
-| `CombatResolver` | Produzir resultado de ataque manual/automático | Instanciar balões ou conceder recompensa |
-| `BuffService` | Ativar, renovar, expirar e consultar poucos buffs ativos | Virar framework genérico de RPG |
-| `StatisticsService` | Registrar contadores e marcos de sessão | Ser controlado pela UI |
-| `AchievementService` | Avaliar poucas condições e conceder recompensa definida | Criar plataforma online de achievements |
-| `BalloonController` | Escolher, configurar, substituir e observar balão normal/especial/boss | Ser o dono de moeda ou save |
-
-Esses serviços podem ser classes `RefCounted` tipadas, criadas por `GameSession`. Timers e scenes ficam nos Nodes que os possuem; a lógica de cálculo deve permanecer testável sem depender de Controls.
-
-## 9. Damage, Critical and Combo Flow
-
-### Manual attack
+O JSON permanece em `user://pop_balloon_save.json` e usa `save_version: 10`.
 
 ```text
-Balloon GUI click
-  → GameSession registra click e atualiza Combo
-  → CombatResolver calcula base Click Damage
-  → aplica combo ativo
-  → sorteia crítico com dados de GameBalanceData
-  → retorna AttackResult { damage, was_critical, combo_multiplier }
-  → Balloon.take_damage(damage)
-  → UI/effects recebem AttackResult para feedback
-```
-
-`AttackResult` pode ser uma pequena classe tipada de transporte, com campos como `damage: float`, `was_critical: bool` e `combo_multiplier: float`. Ela evita recalcular crítico em UI e efeitos, sem introduzir uma camada genérica de eventos.
-
-### Automatic attack
-
-```text
-AutoDamageTimer (0.25 s)
-  → EquipmentService retorna total_auto_dps
-  → CombatResolver converte para total_auto_dps × 0.25
-  → Balloon.take_damage(damage)
-```
-
-O timer central aplica quatro ticks por segundo. Dano é `float` internamente; a UI pode exibir valores arredondados. Se um balão morrer no meio do tick, o `Balloon` encerra a transação com `is_popped`; qualquer overkill não passa para o próximo balão. O próximo alvo aparece pelo fluxo de pop antes do tick seguinte, eliminando duplicação e dano em alvo removido.
-
-### Critical ownership
-
-Critical Chance e Critical Damage são lidos pelo `CombatResolver` a partir de `GameState` e `BalanceService`. `Balloon` só recebe o dano final e o metadado necessário para reação visual. A UI nunca sorteia ou calcula crítico.
-
-### Combo ownership and decay
-
-Combo fica em `GameState.runtime_only.combo_stacks` e é alterado por `GameSession` ao receber clique válido. O fluxo segue os valores de `BALANCE.md`:
-
-- a cada oito cliques válidos, aumentar uma stack, até dez;
-- `ComboGraceTimer` inicia após 1.5 s sem clique válido;
-- ao expirar, `ComboDecayTimer` remove uma stack por segundo até zero;
-- cada mudança emite `combo_changed`, para a UI atualizar apenas quando necessário.
-
-Não há `_process()` por balão ou widget para controlar combo.
-
-## 10. Balloon Architecture
-
-### Reusable balloon scene
-
-```text
-Balloon (Control) [balloon.gd]
-├── Visual (TextureRect)
-├── AnimationPlayer
-├── FeedbackAnchor (Control)
-└── LocalEffectAnchor (Control)
-```
-
-O HP principal é apresentado pelo `BalloonHUD` da HUD, para manter layout e leitura consistentes. O `Balloon` pode expor uma indicação local simplificada, mas não deve duplicar a lógica de HUD.
-
-`Balloon.gd` é responsável por:
-
-- receber `BalloonData` e HP efetivo;
-- manter `current_health` e `is_popped`;
-- aceitar dano uma única vez por ataque;
-- emitir dano e pop;
-- disparar squash, pop e hooks locais de feedback;
-- bloquear novos cliques depois do pop.
-
-Ele não adiciona Coins, avalia requisitos, compra upgrades, calcula DPS global ou grava save.
-
-### Click handling choice
-
-O root `Balloon` será um `Control` customizado e tratará `gui_input` de clique esquerdo. Essa opção é preferível a `Area2D` porque a experiência é uma interface 2D organizada por Containers e a área do balão precisa coexistir com HUD, overlays e controle de foco de UI. Um `Button` padrão não é necessário: o visual e a animação do balão são altamente customizados.
-
-O Control deve usar `mouse_filter` apropriado, aceitar somente clique pressionado dentro da área visível e emitir um signal de intenção de ataque. Latência de input e feedback local devem ocorrer no mesmo evento, enquanto a regra de dano continua centralizada na sessão.
-
-### BalloonController
-
-`BalloonController` é um Node da `GameSession` que:
-
-- resolve o `BalloonData` do tier atual pelo catálogo;
-- aplica a sequência de variação de HP do `GameBalanceData`;
-- instancia e configura o balão normal em `BalloonContainer`;
-- apresenta especiais em `SpecialBalloonLayer`, sem substituir o balão normal;
-- limpa referências após pop/despawn;
-- inicia o Balloon King quando `ProgressionService` liberar a transição.
-
-Ao receber `popped`, ele emite um evento de domínio ao `GameSession`. A sessão então chama Economy, Statistics, Progression, Achievement e feedback na ordem apropriada. Isso mantém `BalloonController` focado em ciclo de vida de alvo.
-
-## 11. Equipment, Upgrades and Economy
-
-### Equipment
-
-`EquipmentService` usa `EquipmentData` + `GameState.equipment_levels`. Ele resolve disponibilidade, custo de próximo nível, compra validada e `total_auto_dps`. Todos os equipamentos compartilham a fórmula de `BALANCE.md`; adicionar um novo equipamento requer principalmente um novo Resource e entrada no catálogo, não um novo script de comportamento.
-
-### Upgrades
-
-`UpgradeService` mantém três caminhos explícitos por enum: `CLICK_DAMAGE`, `CRITICAL_CHANCE` e `CRITICAL_DAMAGE`. Essa escolha é intencionalmente simples: há somente três upgrades e cada um tem tabela/fórmula distinta. `BalanceService` calcula valor atual, máximo e próximo custo; o painel apenas solicita a compra pelo ID.
-
-### Economy transaction flow
-
-```text
-UI solicita compra
-  → Service consulta BalanceService
-  → EconomyService.try_spend_coins(cost)
-  → Service altera nível/estado somente após gasto bem-sucedido
-  → signals de saldo e item alterado
-  → UI atualiza e SaveManager é marcado como dirty
-```
-
-`try_spend_coins` falha sem alterar estado se o saldo for insuficiente. A compra deve ter uma trava curta de transação para que dois eventos de botão no mesmo frame não comprem duas vezes. Buttons nunca subtraem Coins diretamente.
-
-## 12. Progression, Specials and Buffs
-
-### Progression
-
-`ProgressionService` consulta `GameState`, `BalloonData` e `GameBalanceData` para avaliar:
-
-- pops e Coins exigidos por tier;
-- próximo objetivo e progresso exibível;
-- unlock de balões/equipamentos;
-- elegibilidade do boss;
-- conclusão de campanha e liberação do Endless.
-
-Ele emite uma descrição de objetivo simples para `ProgressionPanel`, sem depender de Labels ou de detalhes visuais. A UI só apresenta progresso recebido.
-
-### Special balloons
-
-Especiais reutilizam `balloon.tscn` e `Balloon.gd`, configurados com `BalloonData.category == SPECIAL`. Não há subclasses nem scenes específicas por tipo.
-
-Um scheduler central da `GameSession` controla a próxima oportunidade de especial. Ele usa o intervalo aleatório entre 150 e 210 s, a média de 180 s e os pesos definidos em `BALANCE.md`. Ao criar um especial:
-
-- `BalloonController` calcula HP como fração do HP base normal atual;
-- instancia o alvo em `SpecialBalloonLayer`;
-- inicia um timer de duração de 10 s;
-- se o alvo expirar, remove apenas o especial;
-- se for estourado, a sessão concede reward e ativa o buff associado quando houver.
-
-O balão normal fica visível e preserva HP durante todo o evento.
-
-### Buffs
-
-`BuffService` mantém somente os buffs ativos definidos em `BuffData`. Cada buff tem ID, multiplicador, duração e política de renovação. Para a versão 1.0:
-
-- Electric: Auto DPS ×1.50 por 20 s;
-- Frenzy: Click Damage ×1.35 e combo mínimo 1.25x por 15 s;
-- nova obtenção do mesmo buff renova a duração em vez de acumular.
-
-Um único `BuffTimer`, com intervalos curtos e previsíveis, atualiza expirações. `BuffService` expõe multiplicadores para `CombatResolver` e `EquipmentService`, emitindo signals apenas em início, mudança visual relevante e fim. Não há framework de buffs genérico nem um Timer por buff.
-
-## 13. Boss and Endless Architecture
-
-### Balloon King
-
-O Balloon King reutiliza `Balloon.tscn`, `Balloon.gd`, dano e recompensa normais com `BalloonData.category == BOSS`. Somente a apresentação e a HUD recebem extensões necessárias:
-
-- transição de `ProgressionService` troca o balão normal pelo boss;
-- `BalloonHUD` usa estilo de barra especial;
-- thresholds de HP vêm do dado de boss/balance e emitem eventos de fase;
-- as fases são visuais, conforme `BALANCE.md`, sem penalidade de DPS nem mecânica inédita;
-- ao pop, `GameSession` registra vitória, autosalva, mostra `VictoryOverlay` e libera Endless.
-
-### Endless
-
-Endless não cria outro loop ou outro conjunto de sistemas. Reutiliza `GameSession`, BalloonController, combat, economy, upgrades e equipamentos. Depois da vitória, `ProgressionService` troca a fonte de seleção de balão para uma progressão escalável de Endless. Prestige, nova moeda e regras específicas de Endless permanecem fora da primeira implementação de campanha.
-
-## 14. UI Architecture and Signals
-
-### UI responsibilities
-
-| Componente | Observa | Ação permitida |
-|---|---|---|
-| TopBar/MainHUD | Coins, Diamonds, DPS, HP, combo | Apenas exibir |
-| UpgradePanel | UpgradeService e EconomyService | Solicitar compra |
-| EquipmentPanel | EquipmentService e EconomyService | Solicitar compra |
-| ProgressionPanel | ProgressionService | Mostrar objetivo e requisito |
-| BuffDisplay | BuffService | Mostrar duração/ícone |
-| NotificationLayer | unlocks, conquistas, compras e especiais | Apresentar mensagem |
-| VictoryOverlay | Statistics, completion | Mostrar resultado e ação de Endless |
-
-Cada painel recebe referências públicas da sessão ou um adaptador pequeno de apresentação quando a scene é montada. Nenhum painel procura sistemas por caminhos longos pela árvore.
-
-### Main signals
-
-| Signal | Emissor | Ouvintes típicos |
-|---|---|---|
-| `balloon_damaged(current_health, max_health, attack_result)` | Balloon | BalloonHUD, effects |
-| `balloon_popped(balloon_id, category)` | Balloon | GameSession/BalloonController |
-| `coins_changed(value)` / `diamonds_changed(value)` | EconomyService | TopBar, lojas |
-| `upgrade_changed(kind, level)` | UpgradeService | UpgradePanel, HUD |
-| `equipment_changed(id, level, total_auto_dps)` | EquipmentService | EquipmentPanel, HUD |
-| `objective_changed(objective)` | ProgressionService | ProgressionPanel |
-| `tier_unlocked(id)` / `boss_unlocked()` | ProgressionService | NotificationLayer, GameSession |
-| `combo_changed(stacks, multiplier)` | GameSession | HUD, effects |
-| `buff_started(id)` / `buff_ended(id)` | BuffService | BuffDisplay, effects |
-| `achievement_unlocked(id)` | AchievementService | NotificationLayer |
-| `campaign_completed()` | ProgressionService | GameSession, VictoryOverlay |
-
-Conexões são explícitas dentro da `GameSession` e da scene UI. Não usar event bus global: os emissores e ouvintes já têm relação de domínio clara.
-
-### Event-driven update rule
-
-Valores de UI mudam quando services emitem signals. Por exemplo, `coins_changed` atualiza o label de Coins; `balloon_damaged` atualiza a barra de HP. `_process()` não atualiza strings, custos ou barras em todos os frames. Apenas animações, Tweens ou o indicador de duração de buff podem ter atualização visual limitada e centralizada.
-
-## 15. Save System
-
-### Format and location
-
-`SaveManager` usa um Dictionary serializável em JSON, salvo em:
-
-```text
-user://pop_balloon_save.json
-```
-
-JSON é suficiente para o escopo: é portátil, legível durante debug e fácil de versionar. O save armazena snapshot de dados, nunca Nodes, Resources compartilhados, caminhos de scene ou referências de UI.
-
-### Save schema (version 1)
-
-```text
-save_version: 1
-
-currency:
-  coins
-  diamonds
-
-upgrades:
-  click_damage_level
-  critical_chance_level
-  critical_damage_level
-
-equipment_levels:
-  { equipment_id: level }
-
+currency, upgrades (incluindo Reward Upgrades e Buff Frequency), equipment_levels, global_upgrade_levels
 progression:
   current_normal_balloon_id
   current_balloon_health
   normal_variation_index
-  unlocked_balloon_ids
-  boss_unlocked
-  campaign_completed
-  endless_unlocked
-
-statistics:
-  clicks
-  balloons_popped
-  special_balloons_popped
-  coins_earned
-  diamonds_earned
-  total_damage
-  largest_critical
-  active_play_seconds
-
-settings:
-  master_volume
-  music_volume
-  sfx_volume
+  unlocked_balloon_ids, balloon_pops_by_id, flags de campanha
+statistics, settings
 ```
 
-Não salvar combo, buffs, especial em tela, Timer, Tween, partículas, referências de Nodes, estado de animação ou pause. Esses itens são transitórios e são recriados/expirados ao carregar.
+Saves v1–v9 mantêm migrações compatíveis. A v10 adiciona `campaign_completion_presented`, contagem do Balloon King, Hold to Click persistente e nível de Diamond Event Frequency. O ID técnico legado `golden_balloon` é preservado, mas sua apresentação é Dark Balloon, evitando perda de unlocks, pops ou tier atual. Buffs e eventos em andamento continuam transitórios.
 
-### Versioning, corruption and reset
+Autosave ocorre em compras/unlocks, no máximo a cada 60 s enquanto dirty e ao sair. HP alterado também marca o save como dirty.
 
-- `save_version` é validado antes de aplicar dados.
-- Uma versão antiga é detectada e encaminhada a uma função de migração simples, por versão, quando necessária no futuro.
-- Save inexistente cria `GameState` padrão a partir do catálogo.
-- Save malformado, tipo inválido ou ID de conteúdo ausente gera log claro e não é apagado automaticamente. A UX futura deve oferecer recuperação/reset com confirmação; uma cópia de segurança pode ser criada antes de qualquer substituição.
-- New Game/Reset exige confirmação explícita e somente então grava um snapshot novo. Não há slots múltiplos na 1.0.
+Reveals atuais são determinísticos e não precisam de campo extra no save: o estado é reconstituído de níveis, equipamento, pops e tiers já persistidos. Isso mantém saves existentes compatíveis e impede duplicação de estado.
 
-### Autosave policy
+## Dados e extensões
 
-- Salvar imediatamente após compra, unlock, vitória, reset confirmado e alteração de settings.
-- Marcar o estado como dirty após pop/recompensa; o `AutosaveTimer` grava no máximo a cada 60 s enquanto dirty.
-- Tentar um último save dirty no encerramento da aplicação.
-- Nunca salvar a cada clique, tick de Auto DPS ou frame.
+`GameBalanceData` contém fórmulas de dano, críticos, combo, custo, tick de automação, frequência/duração de specials e buffs. A curva de Click Damage possui uma tabela data-driven de custos iniciais e uma fórmula exponencial somente após esse estágio; o dano permanece linear. `BalloonData` contém dados de tier, HP, recompensa, requisitos, cor e efeito de special. `EquipmentData` contém requisitos de tier, níveis e milestones; `EquipmentService` calcula seus multiplicadores sem envolver o `Balloon`.
 
-Essa política protege progressão importante sem escrita contínua em disco.
+Click Damage é ilimitado (`click_upgrade_max_level = 0`). `BalanceService` centraliza dano, custo e milestones, e `UpgradeService` interpreta zero como ausência de teto; a UI apenas consulta esses resultados. Saves preservam qualquer nível existente sem migração adicional.
 
-## 16. Statistics, Achievements, Time and Debug
+Críticos, combo, buffs, globais, Diamonds, especiais, equipamentos posteriores e boss são extensões planejadas. O boss continua um único alvo e pode reutilizar `Balloon` ou uma scene específica compatível com o mesmo fluxo de dano/recompensa.
 
-`StatisticsService` é o único ponto que incrementa contadores de gameplay. Outros sistemas informam eventos; UI apenas lê o estado. `PlaytimeTimer` avança uma vez por segundo somente enquanto gameplay não está pausado, sem usar relógio do sistema como duração ativa.
+## Performance
 
-`AchievementService` consulta `AchievementData` e marcos explícitos de Statistics/Progression. Ele precisa suportar somente as conquistas da versão 1.0 e recompensas pequenas de Diamonds; não há integração de plataforma online.
+Há um único `Balloon` Control, um timer de Auto DPS, dois timers centralizados de specials e timers de save/playtime/buff. Nenhum sistema de gameplay roda em `_process()`. Eventos usam sinais e referências locais, sem buscas repetidas na SceneTree.
 
-### Development-only balance support
+## Áudio — Milestone 8
 
-Depois que o loop existir, uma `DebugPanel` discreta pode ser incluída apenas em builds de desenvolvimento. Ela chama métodos públicos controlados da `GameSession` para:
+`AudioManager` é um Autoload independente de gameplay. Ele cria os buses `Music`, `SFX` e `UI` além do `Master` da engine, mantém pools de seis vozes SFX, três vozes UI e dois players de música para crossfade. Eventos de apresentação são emitidos somente após ações válidas: clique manual, crítico, pop, compra, milestone, reveal, tier, special, buff, boss e vitória. Auto DPS não emite hit SFX.
 
-- adicionar Coins ou Diamonds;
-- definir tier ou poder;
-- spawnar especial;
-- iniciar boss;
-- mostrar Click DPS, Auto DPS, combo, economia e HP;
-- resetar save com confirmação.
+O recorte usa streams procedurais originais somente nos feedbacks ainda sem asset final (`hit`, `critical`, `purchase`, `diamond`, `boss_pop`, `victory` etc.). Os pops normais e as músicas de menu, gameplay e boss usam OGGs organizados em `assets/audio`. Nenhuma regra ou respawn aguarda áudio.
 
-Não é necessário console, cheat menu de release ou framework de comandos.
+Hit, pop, compra e UI possuem cooldown e pitch controlado; o pool não instancia players por ação e descarta uma voz se todas estiverem ocupadas. Isso preserva legibilidade sonora em Auto DPS alto. `GameState.settings` já persiste `master_volume`, `music_volume` e `sfx_volume`; o HUD aplica sliders de 0–100%, salva pela `GameSession` e aplica os buses imediatamente.
 
-### Local balance trace
+As faixas licenciadas do jogo ficam em `assets/audio/music/`: `menu_theme.ogg` alimenta o estado `menu`, `gameplay_theme.ogg` o estado `gameplay` e `balloon_king_theme.ogg` o estado `boss`. Todas são `AudioStreamOggVorbis` em loop no mesmo pool de dois players e bus `Music`; `play_menu_music()`, `play_gameplay_music()` e `start_boss_music()` usam crossfade de 0,55 s e não reiniciam o estado já ativo. A vitória conserva seu estado existente.
 
-Em builds de debug, `StatisticsService`/GameSession pode manter e exportar um log local de marcos: timestamp de tier, TTK, renda/min, DPS manual/auto, compras, início/fim do boss e conclusão. Não há envio de dados a servidor.
+O pop normal escolhe uniformemente `balloon_pop_01`, `balloon_pop_02` ou `balloon_pop_03` em `assets/audio/sfx/`, usando o pool SFX existente, pitch de 0,96–1,04 e cooldown de 45 ms. A chamada continua conectada somente ao sinal de pop confirmado do `BalloonController`, portanto cliques e ticks de Auto DPS não emitem pop antes de o HP chegar a zero; Auto DPS ainda dispara o mesmo sinal ao concluir o estouro. O antigo stream procedural `pop` não é mais usado. Ataques manuais — inclusive os ticks do Hold to Click — emitem o feedback de hit por um único sinal da `GameSession`, sujeito ao cooldown normal do SFX.
 
-## 17. Presentation, Audio and Input
+## Entrada e Main Menu
 
-### Visual effects
+`main_menu.tscn` é a cena inicial. Ela consulta `SaveManager.has_valid_save(catalog)` antes de apresentar Continue; save malformado não é carregado nem habilita o fluxo de campanha. `GameFlow` é um Autoload transitório que transporta somente o modo de entrada (`Continue`, `New Game` ou `Endless`) através da troca de cena. Ele não persiste progressão e o `SaveManager` continua sendo a fonte de verdade para a existência, conclusão e disponibilidade de Endless.
 
-`GameplayEffects` instancia `damage_number.tscn` e `pop_effect.tscn` a partir de eventos com dados prontos, como `AttackResult`, posição e reward. Eles animam e se removem ao terminar. Efeitos não alteram HP, Coins, buffs ou progressão. Instanciação simples é suficiente para a escala 1.0; pooling só deve ser considerado após profiling real.
+New Game cria um `GameState` limpo e preserva apenas Master, Music e SFX do save válido anterior. A confirmação utiliza `SaveManager.reset_save_confirmed`, que também é o caminho de recuperação seguro para um save inválido. Endless só aparece se `endless_unlocked` estiver persistido e, ao entrar em `game.tscn`, solicita o modo Endless existente ao `GameSession` sem alterar suas fórmulas ou regras de campanha.
 
-### Animation policy
+O menu aplica a `PopTheme`, usa painéis e transições de fade curtas, e mantém Settings e Credits como subpainéis. Settings aplica os mesmos buses de áudio imediatamente. `SaveManager` mantém um pequeno arquivo de preferências de áudio separado do save de campanha, mas continua espelhando os valores no estado para compatibilidade; portanto, abrir Settings antes de iniciar uma campanha não cria um save de progresso. `PopCredits` centraliza o texto usado tanto pelo menu quanto pela Victory Overlay. O menu não inicializa balões de gameplay; as formas decorativas e o fundo são exclusivamente de apresentação.
 
-| Ferramenta | Uso planejado |
-|---|---|
-| Tween | Squash do balão, microfeedback de compra, números flutuantes e movimentos pequenos |
-| AnimationPlayer | Introdução do boss, sequência de vitória e apresentações de unlock maiores |
-| Particles | Pop, crítico, moedas e momentos especiais |
+Durante gameplay, `MainHUD` fornece um Pause Overlay aberto por Escape ou pelo botão de pausa. O SceneTree pausa timers e gameplay, enquanto `Game` e `MainHUD` usam processamento `ALWAYS` para manter Resume, Settings, Main Menu e Quit interativos. Main Menu força um save imediato, retoma a árvore e usa o fade de cena antes de retornar a `main_menu.tscn`; o Victory Overlay não pode abrir pausa.
 
-Gameplay confirma dano, recompensa ou unlock antes do efeito. Nenhuma regra econômica ou de progressão depende do fim de uma animação frágil.
+## Preferências e build de playtest
 
-### Audio
+`SaveManager` mantém preferências fora da campanha em `user://pop_balloon_settings.json`. Além dos volumes de áudio espelhados para compatibilidade em `GameState`, o arquivo contém `fullscreen` e `vsync`; essas opções são aplicadas no boot e podem ser alteradas tanto no menu quanto nas Settings da pausa. Preferências válidas sobrevivem a save de campanha ausente ou malformado. Um save inválido não é sobrescrito automaticamente: a sessão informa a recuperação e somente New Game confirmado pode substituí-lo.
 
-`AudioManager` mantém players para música e SFX, e aplica settings persistidos. Os buses planejados são apenas:
+O metadata de release vem de `project.godot` (`0.9.0-playtest`) e o preset Windows Desktop exporta para `build/windows/POP Balloon.exe` com PCK embutido. Créditos, proveniência de terceiros, checklist de playtest e limitações verificadas ficam respectivamente em `THIRD_PARTY_ASSETS.md`, `PLAYTEST_CHECKLIST.md` e `KNOWN_ISSUES.md`.
 
-```text
-Master
-Music
-SFX
-```
+## Recorte implementado
 
-SFX de pop podem escolher uma variação de uma coleção curta; crítico, compra, unlock, especial, boss e vitória têm cues próprios. A assetização pode ser simples no início e não exige um framework de áudio.
+Red, Blue, Green, Purple, Dark e Rainbow funcionam como tiers sequenciais. Diamonds são concedidos apenas pelo evento Crystal; a frequência desse evento possui upgrade próprio comprado com Diamonds.
 
-### Input
+## Late game
 
-- Clique principal: tratado diretamente pelo `Balloon` Control via evento GUI.
-- Input Map planejado: somente `pause` para a pausa da partida.
-- O botão de pause e `pause` ativam a mesma ação de sessão.
+## Apresentação — Milestone 7
 
-Pausar congela gameplay, AutoDamageTimer, Combo timers, BuffTimer e PlaytimeTimer; overlays de UI podem continuar responsivos. Não criar bindings extras sem feature que os justifique.
+O HUD usa uma área de jogo separada da loja lateral com abas e rolagem. Cards reutilizam os botões e sinais de compra existentes; tema, formatação numérica e feedback visual são componentes de apresentação. Requisitos usam dados reais, conteúdo HIDDEN permanece ausente e vitória oculta o HUD. A documentação da direção visual, auditoria, limites e testes está em [UI_DESIGN.md](UI_DESIGN.md). Nenhuma fórmula de gameplay ou versão de save foi alterada por este redesign.
 
-## 18. Resolution and Layout
+### Sistemas de late game existentes
 
-A resolução base planejada é **1280×720**, adequada à apresentação horizontal de PC e à prioridade visual do balão central. O projeto já usa `canvas_items` + `expand`; quando a UI for implementada, configurar a base no Project Settings sem mudar a estratégia de stretch existente.
+Balloon Popping Machine, PopBot e Anti-Balloon Cannon usam `EquipmentData` e `EquipmentService` sem lógica exclusiva. Rainbow é outro `BalloonData.NORMAL`, com requisito data-driven de PopBot. `GameSession.is_ready_for_balloon_king()` exige Rainbow + Cannon Lv. 1. Balloon King reutiliza `BalloonController`, persiste HP/fase, suspende novos Specials e marca campanha/Endless ao pop. Victory/Credits só é apresentado pelo evento de vitória atual; carregar um save concluído entra no jogo normalmente. Endless preserva a lista completa de tiers desbloqueados e a navegação Previous/Next.
 
-Todos os painéis usam anchors e Containers. `BalloonArea` recebe a maior área central; lojas e metas se organizam em painéis inferiores/laterais responsivos. Coordenadas absolutas só são aceitáveis para efeitos locais ancorados ao balão, nunca como mecanismo geral de layout.
+## External playtest feedback pass
 
-## 19. Error Handling and Testability
-
-### Error handling
-
-- **Resource ausente ou ID inválido:** emitir erro útil em debug e impedir a criação daquele conteúdo; nunca substituir por números arbitrários silenciosamente.
-- **BalloonData inválido:** validar HP, reward e categoria ao carregar o catálogo; usar assertions em debug para invariantes de desenvolvimento.
-- **Saldo/custo inválido:** `EconomyService` recusa a transação e não altera estado.
-- **Save ausente/corrompido:** aplicar as regras da seção de save, preservando o arquivo original até o usuário confirmar recuperação/reset.
-
-### Testability
-
-`BalanceService`, Economy, Equipment, Upgrade, Progression e CombatResolver devem aceitar dados e `GameState` sem depender de Controls. Isso permite validação futura de fórmula, TTK, gates e compra em testes de script ou simulação sem abrir a UI.
-
-`GameSession` é o local de composição; ele não deve esconder regras de cálculo em callbacks de scene. Essa separação torna possível criar um estado conhecido, executar uma ação e verificar resultado de forma determinística, exceto pela semente/resultado de crítico que deve poder ser controlado em debug.
-
-## 20. GDScript Conventions and Dependency Rules
-
-### Conventions
-
-- `PascalCase` para classes, `snake_case` para variáveis, funções, arquivos e signals.
-- GDScript tipado para propriedades, parâmetros, retornos e collections quando aplicável.
-- `class_name` em classes reutilizáveis de Resource, state e services.
-- `@export` para configuração de scene/catalog; `@onready` para referências de Nodes da própria scene.
-- Enums curtas para categoria de balão, tipo de upgrade e estado de campanha quando trouxerem clareza.
-- Signals descritivos, como `coins_changed`, `balloon_popped` e `campaign_completed`.
-- Comentários explicam decisão ou limitação, não a próxima linha.
-
-Exemplo de estilo, apenas como convenção:
-
-```gdscript
-class_name Balloon
-extends Control
-
-signal popped(balloon_id: StringName)
-
-var current_health: float
-
-func take_damage(amount: float) -> void:
-    pass
-```
-
-### Dependencies
-
-```text
-Resources → services/state → GameSession → scenes/UI/effects
-```
-
-- UI pode depender de interfaces públicas de sessão/services, nunca de Labels como estado.
-- Gameplay não depende de widgets específicos.
-- Resources não dependem de UI ou runtime state.
-- SaveManager serializa `GameState`; ele não decide pop, compra ou progressão.
-- Balloon não conhece Economy ou SaveManager.
-- Economy não conhece arte, partículas ou animações.
-- BalanceService é a única origem de cálculos de `BALANCE.md` no código.
-
-## 21. Anti-Patterns
-
-Não fazer durante implementação:
-
-- concentrar o jogo inteiro em `Main.gd` ou `Game.gd`;
-- atualizar toda a UI em `_process()`;
-- espalhar caminhos profundos de Nodes;
-- criar Autoload para cada sistema;
-- hardcodar tiers em `if/elif` ou escrever um script por equipamento;
-- alterar Coins diretamente em Buttons;
-- usar Labels como fonte de verdade;
-- salvar Nodes, Tweens ou efeitos visuais;
-- misturar efeitos de pop com economia ou progression;
-- criar árvore de herança grande para quatro especiais e um boss;
-- duplicar fórmulas de custo/dano em UI;
-- preparar sistemas para multiplayer, Prestige, backend ou features fora do design;
-- adicionar Timer por equipamento quando existe Auto DPS central.
-
-## 22. Implementation Roadmap
-
-### Phase 0 — Foundation
-
-- Criar estrutura mínima necessária, classes de Resource e catálogo.
-- Criar `GameState`, `BalanceService` e `GameSession` sem conteúdo extra.
-- Validar catálogo, IDs e valores de `BALANCE.md` no início da sessão.
-
-### Phase 1 — Core Vertical Slice
-
-- Red Balloon visível e clicável.
-- HP, dano manual, pop, Coins e próximo balão.
-- Click Damage, UI mínima e Needle com Auto DPS central.
-- Blue Balloon como primeiro unlock/prova de progressão.
-
-**Resultado:** já existe um jogo mínimo clicável que valida a arquitetura de estado, dano, recompensa, compra e ciclo de balão.
-
-### Phase 2 — Persistence and Base UI
-
-- Estabilizar o formato de `GameState` usado pelo slice.
-- Implementar SaveManager, load, autosave, reset confirmado e settings de áudio.
-- Consolidar MainHUD, UpgradePanel, EquipmentPanel e ProgressionPanel event-driven.
-
-Save entra aqui, assim que o estado do loop principal estiver estável e antes de expandir muito conteúdo persistente.
-
-### Phase 3 — Campaign Progression
-
-- Adicionar todos os BalloonData normais, gates e ProgressionPanel.
-- Adicionar todos os EquipmentData e completar a loja.
-- Validar checkpoints e fórmulas de `BALANCE.md` com dados reais.
-
-### Phase 4 — Player Power
-
-- Critical Chance, Critical Damage e feedback de crítico.
-- Combo, timers centralizados e UI de combo.
-
-### Phase 5 — Special Content
-
-- Scheduler de especiais, Golden/Crystal/Electric/Frenzy.
-- Diamonds, BuffService e BuffDisplay.
-
-### Phase 6 — Boss and Victory
-
-- Balloon King, barra especial, fases visuais, vitória e crédito/estatísticas.
-- Liberação de Endless sem duplicar loop principal.
-
-### Phase 7 — Meta and Debug
-
-- Estatísticas, conquistas, DebugPanel de desenvolvimento e balance trace local.
-- Endless básico após confirmação de que a campanha fecha corretamente.
-
-### Phase 8 — Polish and Release
-
-- Animações, partículas, áudio, números flutuantes e feedback de compra/unlock.
-- Playtests de duração, TTK, dead zones, save e resolução.
-- Profiling apenas de gargalos reais, exportação e limpeza final.
-
-## 23. Vertical Slice Definition
-
-O primeiro vertical slice está pronto quando contém, em uma única partida funcional:
-
-- balão visível com HP;
-- clique de baixa latência;
-- dano e pop;
-- Coins autoritativas no `GameState`;
-- upgrade de Click Damage;
-- Needle como primeiro equipamento com Auto DPS por tick central;
-- HUD mínima para Coins, HP, Click Damage e Auto DPS;
-- Red Balloon e Blue Balloon, com unlock e spawn do próximo alvo.
-
-Ele prova o fluxo essencial:
-
-```text
-UI/input → GameSession/combat → Balloon → reward/progression → state → UI
-```
-
-Críticos, combo, especiais, boss, save completo e polish não devem bloquear a prova inicial do loop.
-
-## 24. Consistency Notes and Definition of Done
-
-### Consistency review
-
-Não há conflito material entre `GAME_DESIGN.md` e `BALANCE.md`. A arquitetura preserva os pontos importantes dos dois documentos:
-
-- balão especial é alvo separado e opcional, sem substituir o balão normal;
-- Golden Balloon de campanha e Golden Special Balloon têm dados/IDs distintos;
-- Diamonds são opcionais e não entram em gates de campanha;
-- o boss reutiliza o loop de clique + automação + upgrades e tem fases somente visuais;
-- a escala de milhões baixos/dezenas de milhões usa `float` e formatação K/M, sem biblioteca de big numbers;
-- a campanha termina no boss; Endless apenas reutiliza sistemas existentes.
-
-### Definition of done
-
-Este documento está completo quando outro desenvolvedor consegue identificar:
-
-- scenes, componentes e diretórios a criar;
-- Resources estáticos e estado runtime;
-- os dois Autoloads justificados;
-- responsabilidades e limites de cada serviço;
-- fluxo de dano, crítico, combo, Auto DPS, economia e progressão;
-- estratégia de especiais, buffs, boss, UI e efeitos;
-- formato, versionamento e pontos de autosave;
-- ordem de implementação e critério do primeiro vertical slice.
-
-Nenhuma parte desta arquitetura exige gameplay, scenes, scripts, Resources, Autoloads, Input Map ou configuração já implementados nesta tarefa.
+`NumberFormat` centraliza inteiros, uma casa decimal, percentuais, multiplicadores e abreviações K/M/B/T/Q. A loja mantém BuyMode em sessão (`ONE`, `TEN`, `MAX`) e executa compras nível a nível, respeitando custo crescente, moeda e cap. `UpgradeCard` responde a hover em toda sua área sem interceptar o botão e oculta a barra ao atingir MAX. Statistics lê contadores reais do `GameState`. Hold to Click usa estado de botão e alvo válido, sendo cancelado por release, saída do balão, foco, pause, overlays, pop e troca de cena.

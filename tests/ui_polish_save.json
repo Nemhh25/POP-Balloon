@@ -1,0 +1,69 @@
+{
+	"currency": {
+		"coins": 500000,
+		"diamonds": 0
+	},
+	"equipment_levels": {
+		"anti_balloon_cannon": 0,
+		"balloon_popping_machine": 0,
+		"dart": 0,
+		"dart_launcher": 0,
+		"needle": 0,
+		"popbot": 0,
+		"pressure_gun": 0
+	},
+	"global_upgrade_levels": {
+		"auto_dps_core": 0,
+		"click_core": 0,
+		"coin_magnet": 0,
+		"critical_core": 0
+	},
+	"progression": {
+		"balloon_pops_by_id": {},
+		"boss_health": 0.0,
+		"boss_phase": 0,
+		"boss_unlocked": false,
+		"campaign_completed": false,
+		"campaign_completion_presented": false,
+		"current_balloon_health": 224.0,
+		"current_normal_balloon_id": "blue_balloon",
+		"endless_unlocked": false,
+		"normal_variation_index": 0,
+		"unlocked_balloon_ids": [
+			"red_balloon",
+			"blue_balloon",
+			"green_balloon"
+		]
+	},
+	"save_version": 10,
+	"settings": {
+		"hold_click_enabled": false,
+		"master_volume": 1.0,
+		"music_volume": 1.0,
+		"sfx_volume": 1.0
+	},
+	"statistics": {
+		"active_play_seconds": 4320,
+		"balloon_king_defeated_count": 0,
+		"balloons_popped": 0,
+		"clicks": 1,
+		"coins_earned": 0,
+		"diamonds_earned": 0,
+		"largest_critical": 0.0,
+		"special_balloons_popped": 0,
+		"total_damage": 4.0
+	},
+	"upgrades": {
+		"buff_frequency_clicks": 0,
+		"buff_frequency_level": 0,
+		"buff_frequency_unlocked": false,
+		"click_damage_level": 4,
+		"coin_reward_level": 0,
+		"critical_chance_level": 0,
+		"critical_damage_level": 0,
+		"crystal_balloons_popped": 0,
+		"diamond_event_frequency_level": 0,
+		"diamond_progress_pops": 0,
+		"diamond_reward_level": 0
+	}
+}

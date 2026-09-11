@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlobalUpgradeData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/global_upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"combo_mastery"
+display_name = "Combo Mastery"
+description = "Increases the bonus portion of Combo. Does not change stacks or timeout."
+effect = 7
+max_level = 8
+bonus_per_level = 0.03
+required_tier = 4
+requires_buff_discovery = false

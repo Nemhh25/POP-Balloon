@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RevealRuleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/reveal_rule_data.gd" id="1_reveal"]
+
+[resource]
+script = ExtResource("1_reveal")
+id = &"critical_damage"
+display_name = "Critical Damage"
+required_critical_chance_level = 3
+required_balloon_tier = 2

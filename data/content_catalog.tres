@@ -1,13 +1,54 @@
-[gd_resource type="Resource" script_class="ContentCatalogData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="ContentCatalogData" load_steps=36 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/content_catalog_data.gd" id="1_catalog"]
 [ext_resource type="Resource" path="res://data/balance/game_balance.tres" id="2_balance"]
 [ext_resource type="Resource" path="res://data/balloons/red_balloon.tres" id="3_red"]
 [ext_resource type="Resource" path="res://data/balloons/blue_balloon.tres" id="4_blue"]
 [ext_resource type="Resource" path="res://data/equipment/needle.tres" id="5_needle"]
+[ext_resource type="Resource" path="res://data/balloons/green_balloon.tres" id="6_green"]
+[ext_resource type="Resource" path="res://data/balloons/purple_balloon.tres" id="7_purple"]
+[ext_resource type="Resource" path="res://data/equipment/dart.tres" id="8_dart"]
+[ext_resource type="Resource" path="res://data/reveals/click_damage.tres" id="9_click"]
+[ext_resource type="Resource" path="res://data/reveals/needle.tres" id="10_needle_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/critical_chance.tres" id="11_crit_chance"]
+[ext_resource type="Resource" path="res://data/reveals/critical_damage.tres" id="12_crit_damage"]
+[ext_resource type="Resource" path="res://data/reveals/dart.tres" id="13_dart_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/combo.tres" id="14_combo"]
+[ext_resource type="Resource" path="res://data/balloons/golden_balloon.tres" id="15_golden"]
+[ext_resource type="Resource" path="res://data/balloons/golden_special_balloon.tres" id="16_special_golden"]
+[ext_resource type="Resource" path="res://data/balloons/crystal_balloon.tres" id="17_crystal"]
+[ext_resource type="Resource" path="res://data/balloons/electric_balloon.tres" id="18_electric"]
+[ext_resource type="Resource" path="res://data/balloons/frenzy_balloon.tres" id="19_frenzy"]
+[ext_resource type="Resource" path="res://data/equipment/dart_launcher.tres" id="20_launcher"]
+[ext_resource type="Resource" path="res://data/equipment/pressure_gun.tres" id="21_pressure"]
+[ext_resource type="Resource" path="res://data/reveals/dart_launcher.tres" id="22_launcher_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/golden_special_balloon.tres" id="23_golden_special_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/crystal_balloon.tres" id="24_crystal_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/electric_balloon.tres" id="25_electric_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/frenzy_balloon.tres" id="26_frenzy_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/global_upgrades.tres" id="27_global_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/pressure_gun.tres" id="28_pressure_reveal"]
+[ext_resource type="Resource" path="res://data/global_upgrades/auto_dps_core.tres" id="29_auto_global"]
+[ext_resource type="Resource" path="res://data/global_upgrades/coin_magnet.tres" id="30_coin_global"]
+[ext_resource type="Resource" path="res://data/balloons/rainbow_balloon.tres" id="31_rainbow"]
+[ext_resource type="Resource" path="res://data/equipment/balloon_popping_machine.tres" id="32_machine"]
+[ext_resource type="Resource" path="res://data/equipment/popbot.tres" id="33_popbot"]
+[ext_resource type="Resource" path="res://data/equipment/anti_balloon_cannon.tres" id="34_cannon"]
+[ext_resource type="Resource" path="res://data/reveals/balloon_popping_machine.tres" id="35_machine_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/popbot.tres" id="36_popbot_reveal"]
+[ext_resource type="Resource" path="res://data/reveals/anti_balloon_cannon.tres" id="37_cannon_reveal"]
+[ext_resource type="Resource" path="res://data/global_upgrades/click_core.tres" id="38_click_global"]
+[ext_resource type="Resource" path="res://data/global_upgrades/critical_core.tres" id="39_critical_global"]
+[ext_resource type="Resource" path="res://data/balloons/balloon_king.tres" id="40_king"]
+[ext_resource type="Resource" path="res://data/global_upgrades/buff_duration.tres" id="41_duration"]
+[ext_resource type="Resource" path="res://data/global_upgrades/buff_power.tres" id="42_power"]
+[ext_resource type="Resource" path="res://data/global_upgrades/special_frequency.tres" id="43_frequency"]
+[ext_resource type="Resource" path="res://data/global_upgrades/combo_mastery.tres" id="44_combo"]
 
 [resource]
 script = ExtResource("1_catalog")
 balance = ExtResource("2_balance")
-balloons = Array[ExtResource("3_red")]([ExtResource("3_red"), ExtResource("4_blue")])
-equipment = Array[ExtResource("5_needle")]([ExtResource("5_needle")])
+balloons = Array[ExtResource("3_red")]([ExtResource("3_red"), ExtResource("4_blue"), ExtResource("6_green"), ExtResource("7_purple"), ExtResource("15_golden"), ExtResource("31_rainbow"), ExtResource("40_king"), ExtResource("16_special_golden"), ExtResource("17_crystal"), ExtResource("18_electric"), ExtResource("19_frenzy")])
+equipment = Array[ExtResource("5_needle")]([ExtResource("5_needle"), ExtResource("8_dart"), ExtResource("20_launcher"), ExtResource("21_pressure"), ExtResource("32_machine"), ExtResource("33_popbot"), ExtResource("34_cannon")])
+reveal_rules = Array[ExtResource("9_click")]([ExtResource("9_click"), ExtResource("10_needle_reveal"), ExtResource("11_crit_chance"), ExtResource("12_crit_damage"), ExtResource("13_dart_reveal"), ExtResource("14_combo"), ExtResource("22_launcher_reveal"), ExtResource("23_golden_special_reveal"), ExtResource("24_crystal_reveal"), ExtResource("25_electric_reveal"), ExtResource("26_frenzy_reveal"), ExtResource("27_global_reveal"), ExtResource("28_pressure_reveal"), ExtResource("35_machine_reveal"), ExtResource("36_popbot_reveal"), ExtResource("37_cannon_reveal")])
+global_upgrades = Array[ExtResource("29_auto_global")]([ExtResource("29_auto_global"), ExtResource("30_coin_global"), ExtResource("38_click_global"), ExtResource("39_critical_global"), ExtResource("41_duration"), ExtResource("42_power"), ExtResource("43_frequency"), ExtResource("44_combo")])

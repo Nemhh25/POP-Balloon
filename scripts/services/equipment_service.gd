@@ -1,6 +1,8 @@
 class_name EquipmentService
 extends RefCounted
 
+const Numbers = preload("res://scripts/ui/number_format.gd")
+
 signal equipment_changed(id: StringName, level: int, total_auto_dps: float)
 
 var _state: GameState
@@ -17,9 +19,16 @@ func _init(state: GameState, catalog: ContentCatalogData, balance: BalanceServic
 func get_level(id: StringName) -> int:
 	return _state.get_equipment_level(id)
 
+func get_dps(id: StringName, level: int = -1) -> float:
+	var equipment_data := _catalog.find_equipment(id)
+	if equipment_data == null:
+		return 0.0
+	var resolved_level := get_level(id) if level < 0 else level
+	return _balance.get_equipment_dps(equipment_data, resolved_level)
+
 func is_available(id: StringName) -> bool:
 	var equipment_data := _catalog.find_equipment(id)
-	return equipment_data != null and _state.click_damage_level >= equipment_data.required_click_damage_level
+	return equipment_data != null and _state.click_damage_level >= equipment_data.required_click_damage_level and _get_highest_unlocked_balloon_tier() >= equipment_data.required_balloon_tier
 
 func get_next_cost(id: StringName) -> int:
 	var equipment_data := _catalog.find_equipment(id)
@@ -47,6 +56,28 @@ func try_buy(id: StringName) -> bool:
 func get_total_auto_dps() -> float:
 	var total := 0.0
 	for equipment_data: EquipmentData in _catalog.equipment:
-		total += _balance.get_equipment_dps(equipment_data, get_level(equipment_data.id))
+		total += get_dps(equipment_data.id)
 	return total
 
+func get_milestone_text(id: StringName) -> String:
+	var equipment_data := _catalog.find_equipment(id)
+	if equipment_data == null or equipment_data.milestone_levels.is_empty():
+		return "No milestones"
+	var parts: Array[String] = []
+	var milestone_count := mini(equipment_data.milestone_levels.size(), equipment_data.milestone_multipliers.size())
+	for index in milestone_count:
+		var level := equipment_data.milestone_levels[index]
+		var multiplier := equipment_data.milestone_multipliers[index]
+		var marker := "✓" if get_level(id) >= level else ""
+		parts.append("%sLv.%d ×%s" % [marker, level, _format_multiplier(multiplier)])
+	return "Milestones: %s" % " · ".join(parts)
+
+func _get_highest_unlocked_balloon_tier() -> int:
+	var highest_tier := 0
+	for balloon_data: BalloonData in _catalog.balloons:
+		if balloon_data.category == BalloonData.Category.NORMAL and _state.is_balloon_unlocked(balloon_data.id):
+			highest_tier = maxi(highest_tier, balloon_data.tier_index)
+	return highest_tier
+
+func _format_multiplier(value: float) -> String:
+	return Numbers.decimal(value)

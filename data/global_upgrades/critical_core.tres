@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlobalUpgradeData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/global_upgrade_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"critical_core"
+display_name = "Critical Mastery"
+description = "Increases final critical damage separately from the base Critical Damage cap."
+effect = 3
+base_diamond_cost = 4
+max_level = 8
+bonus_per_level = 0.03
+required_tier = 5

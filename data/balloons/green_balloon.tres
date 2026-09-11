@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BalloonData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/balloon_data.gd" id="1_balloon"]
+
+[resource]
+script = ExtResource("1_balloon")
+id = &"green_balloon"
+display_name = "Green Balloon"
+category = 0
+tier_index = 3
+base_health = 3200.0
+coin_reward = 500
+display_color = Color(0.2, 0.8, 0.4, 1)
+unlock_pop_requirement = 180
+unlock_coin_requirement = 2000
