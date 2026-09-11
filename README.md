@@ -89,8 +89,7 @@ The game is still being improved based on player feedback, including:
 
 You can download and play POP Balloon on itch.io.
 
-> Add your itch.io link here.
-
+https://nemhh25.itch.io/pop-balloon
 ---
 
 ## 📄 License
